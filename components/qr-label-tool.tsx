@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import QRCode from "qrcode"
 import { Download, Printer, Search, QrCode, Check } from "lucide-react"
-import { inventory, JURUSAN, type InventoryItem } from "@/lib/inventory"
+import { inventory as defaultRawInventory, getStoredInventory, JURUSAN, type InventoryItem } from "@/lib/inventory"
 
 const LABELS = {
   small: { name: "50 × 30 mm", w: 50, h: 30 },
@@ -18,20 +18,28 @@ function assetUrl(kode: string) {
 }
 
 export function QrLabelTool() {
+  const [items, setItems] = useState<InventoryItem[]>(defaultRawInventory)
   const [query, setQuery] = useState("")
   const [jurusan, setJurusan] = useState("all")
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [size, setSize] = useState<LabelSize>("large")
   const [busy, setBusy] = useState(false)
 
+  useEffect(() => {
+    setItems(getStoredInventory())
+    const handleUpdate = () => setItems(getStoredInventory())
+    window.addEventListener("inventory_updated", handleUpdate)
+    return () => window.removeEventListener("inventory_updated", handleUpdate)
+  }, [])
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return inventory.filter((i) => {
+    return items.filter((i) => {
       if (jurusan !== "all" && i.jurusan !== jurusan) return false
       if (!q) return true
       return `${i.kode} ${i.namaPc}`.toLowerCase().includes(q)
     })
-  }, [query, jurusan])
+  }, [items, query, jurusan])
 
   function toggle(kode: string) {
     setSelected((prev) => {
@@ -51,8 +59,8 @@ export function QrLabelTool() {
   }
 
   const selectedItems = useMemo(
-    () => inventory.filter((i) => selected.has(i.kode)),
-    [selected],
+    () => items.filter((i) => selected.has(i.kode)),
+    [items, selected],
   )
 
   async function generatePdf() {

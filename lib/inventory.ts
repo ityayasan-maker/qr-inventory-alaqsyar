@@ -28,6 +28,10 @@ export const JURUSAN = [
   { key: "AKL", label: "AKL" },
   { key: "PM", label: "PM" },
   { key: "SMP", label: "SMP" },
+  { key: "YAYASAN", label: "Yayasan" },
+  { key: "BC", label: "Bisnis Center" },
+  { key: "PPDB", label: "PPDB" },
+  { key: "KEUANGAN", label: "Keuangan" },
 ] as const
 
 export type KondisiStatus = "baik" | "bermasalah" | "mati"
