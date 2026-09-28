@@ -33,7 +33,7 @@ export const JURUSAN = [
 export type KondisiStatus = "baik" | "bermasalah" | "mati"
 
 export function kondisiStatus(kondisi: string): KondisiStatus {
-  const k = kondisi.toUpperCase()
+  const k = (kondisi || "").toUpperCase()
   if (!k || k === "-") return "bermasalah"
   if (k === "BAIK") return "baik"
   if (k.includes("MATI") && !k.includes("MONITOR")) return "mati"
@@ -53,4 +53,50 @@ export function getStats(items: InventoryItem[]) {
   const bermasalah = items.filter((i) => kondisiStatus(i.kondisi) === "bermasalah").length
   const mati = items.filter((i) => kondisiStatus(i.kondisi) === "mati").length
   return { total, baik, bermasalah, mati }
+}
+
+const LOCAL_STORAGE_KEY = "qr_inventory_items_v1"
+
+export function getStoredInventory(): InventoryItem[] {
+  if (typeof window === "undefined") return inventory
+  try {
+    const stored = localStorage.getItem(LOCAL_STORAGE_KEY)
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed
+      }
+    }
+  } catch (e) {
+    console.error("Failed to load inventory from localStorage", e)
+  }
+  return inventory
+}
+
+export function saveStoredInventory(items: InventoryItem[]) {
+  if (typeof window === "undefined") return
+  try {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(items))
+    window.dispatchEvent(new Event("inventory_updated"))
+  } catch (e) {
+    console.error("Failed to save inventory to localStorage", e)
+  }
+}
+
+export function generateNextCode(jurusan: string, items: InventoryItem[]): string {
+  const prefix = jurusan.toUpperCase()
+  const sameJurusan = items.filter((i) => i.jurusan.toUpperCase() === prefix)
+  let maxNum = 0
+  sameJurusan.forEach((item) => {
+    const match = item.kode.match(/-(\d+)-/)
+    if (match) {
+      const num = parseInt(match[1], 10)
+      if (!isNaN(num) && num > maxNum) {
+        maxNum = num
+      }
+    }
+  })
+  const nextNum = String(maxNum + 1).padStart(3, "0")
+  const yearSuffix = new Date().getFullYear().toString().slice(-2)
+  return `${prefix}-PC-${nextNum}-${yearSuffix}`
 }
