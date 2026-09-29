@@ -9,6 +9,7 @@ import {
   getCategoryFromItem,
   type InventoryItem,
 } from "@/lib/inventory"
+import { getStoredRooms } from "@/lib/rooms"
 
 interface ItemFormModalProps {
   isOpen: boolean
@@ -46,7 +47,12 @@ export function ItemFormModal({
   existingItems,
 }: ItemFormModalProps) {
   const [formData, setFormData] = useState<InventoryItem>(defaultForm)
+  const [rooms, setRooms] = useState<string[]>([])
   const isEditing = Boolean(initialData)
+
+  useEffect(() => {
+    setRooms(getStoredRooms())
+  }, [isOpen])
 
   useEffect(() => {
     if (initialData) {
@@ -107,8 +113,6 @@ export function ItemFormModal({
     onSave(formData)
     onClose()
   }
-
-  const currentCategoryObj = KATEGORI_DEVICE.find((k) => k.key === (formData.kategori || "PC"))
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm animate-in fade-in duration-200">
@@ -227,18 +231,26 @@ export function ItemFormModal({
               </select>
             </div>
 
-            {/* Lokasi */}
+            {/* Lokasi Ruangan (Pilihan Master Ruangan) */}
             <div>
               <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                Lokasi Ruang
+                Lokasi Ruangan *
               </label>
-              <input
-                type="text"
+              <select
                 value={formData.lokasi}
                 onChange={(e) => setFormData({ ...formData, lokasi: e.target.value })}
                 className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-sky-500"
-                placeholder="Lab TJKT / Ruang Yayasan / Kantong IT"
-              />
+                required
+              >
+                {rooms.map((room) => (
+                  <option key={room} value={room}>
+                    {room}
+                  </option>
+                ))}
+                {!rooms.includes(formData.lokasi) && formData.lokasi && (
+                  <option value={formData.lokasi}>{formData.lokasi}</option>
+                )}
+              </select>
             </div>
 
             {/* Spesifikasi tambahan / Prosesor */}

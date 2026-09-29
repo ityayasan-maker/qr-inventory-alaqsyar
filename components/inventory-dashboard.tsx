@@ -17,6 +17,11 @@ import {
   Download,
   Upload,
   Filter,
+  Building2,
+  LogIn,
+  LogOut,
+  ShieldCheck,
+  UserCheck,
 } from "lucide-react"
 import {
   inventory as defaultRawInventory,
@@ -30,10 +35,14 @@ import {
   getCategoryFromItem,
   type InventoryItem,
 } from "@/lib/inventory"
+import { getStoredSession, logoutAdmin, type UserSession } from "@/lib/auth"
+import { getStoredRooms } from "@/lib/rooms"
 import { StatCards } from "@/components/stat-cards"
 import { ItemFormModal } from "@/components/item-form-modal"
 import { DeleteConfirmModal } from "@/components/delete-confirm-modal"
 import { ImportModal } from "@/components/import-modal"
+import { LoginModal } from "@/components/login-modal"
+import { RoomModal } from "@/components/room-modal"
 import { exportToExcel } from "@/lib/excel-utils"
 
 const FILTERS = [
@@ -43,25 +52,41 @@ const FILTERS = [
 
 export function InventoryDashboard() {
   const [items, setItems] = useState<InventoryItem[]>(defaultRawInventory)
+  const [session, setSession] = useState<UserSession | null>(null)
+  const [rooms, setRooms] = useState<string[]>([])
   const [jurusan, setJurusan] = useState<string>("all")
   const [kategoriFilter, setKategoriFilter] = useState<string>("all")
+  const [ruanganFilter, setRuanganFilter] = useState<string>("all")
   const [query, setQuery] = useState("")
+
+  // Modals
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isImportOpen, setIsImportOpen] = useState(false)
+  const [isLoginOpen, setIsLoginOpen] = useState(false)
+  const [isRoomOpen, setIsRoomOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null)
   const [deletingItem, setDeletingItem] = useState<InventoryItem | null>(null)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
 
-  // Sync with localStorage on mount & listen to window events
+  // Sync state on mount & listen to window events
   useEffect(() => {
-    const loaded = getStoredInventory()
-    setItems(loaded)
+    setItems(getStoredInventory())
+    setSession(getStoredSession())
+    setRooms(getStoredRooms())
 
-    const handleUpdate = () => {
-      setItems(getStoredInventory())
+    const handleInvUpdate = () => setItems(getStoredInventory())
+    const handleAuthChange = () => setSession(getStoredSession())
+    const handleRoomUpdate = () => setRooms(getStoredRooms())
+
+    window.addEventListener("inventory_updated", handleInvUpdate)
+    window.addEventListener("auth_state_changed", handleAuthChange)
+    window.addEventListener("rooms_updated", handleRoomUpdate)
+
+    return () => {
+      window.removeEventListener("inventory_updated", handleInvUpdate)
+      window.removeEventListener("auth_state_changed", handleAuthChange)
+      window.removeEventListener("rooms_updated", handleRoomUpdate)
     }
-    window.addEventListener("inventory_updated", handleUpdate)
-    return () => window.removeEventListener("inventory_updated", handleUpdate)
   }, [])
 
   const showToast = (msg: string) => {
@@ -69,6 +94,15 @@ export function InventoryDashboard() {
     setTimeout(() => {
       setToastMessage(null)
     }, 4000)
+  }
+
+  const requireAdmin = (actionCallback: () => void) => {
+    if (!session) {
+      setIsLoginOpen(true)
+      showToast("Silakan login sebagai Admin terlebih dahulu untuk melakukan aksi ini")
+    } else {
+      actionCallback()
+    }
   }
 
   // Filtered items
@@ -80,13 +114,16 @@ export function InventoryDashboard() {
         const itemKat = getCategoryFromItem(i)
         if (itemKat !== kategoriFilter) return false
       }
+      if (ruanganFilter !== "all") {
+        if ((i.lokasi || "").toLowerCase() !== ruanganFilter.toLowerCase()) return false
+      }
       if (!q) return true
       return [i.kode, i.namaPc, i.prosesor, i.motherboard, i.os, i.monitor, i.casing, i.lokasi]
         .join(" ")
         .toLowerCase()
         .includes(q)
     })
-  }, [items, jurusan, kategoriFilter, query])
+  }, [items, jurusan, kategoriFilter, ruanganFilter, query])
 
   const stats = useMemo(() => getStats(filtered), [filtered])
 
@@ -169,11 +206,13 @@ export function InventoryDashboard() {
   }
 
   const handleResetData = () => {
-    if (confirm("Reset data ke versi default 193 unit awal? Perubahan lokal akan dikembalikan.")) {
-      setItems(defaultRawInventory)
-      saveStoredInventory(defaultRawInventory)
-      showToast("Data inventaris berhasil di-reset ke default")
-    }
+    requireAdmin(() => {
+      if (confirm("Reset data ke versi default 205 unit awal? Perubahan lokal akan dikembalikan.")) {
+        setItems(defaultRawInventory)
+        saveStoredInventory(defaultRawInventory)
+        showToast("Data inventaris berhasil di-reset ke default")
+      }
+    })
   }
 
   return (
@@ -186,12 +225,55 @@ export function InventoryDashboard() {
         </div>
       )}
 
-      {/* Top Action Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      {/* Auth Status Banner & Stat Cards */}
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4">
+          <div className="flex items-center gap-3">
+            <div className={`flex size-10 items-center justify-center rounded-xl ${session ? "bg-emerald-500/15 text-emerald-400" : "bg-sky-500/15 text-sky-400"}`}>
+              {session ? <UserCheck className="size-5" /> : <ShieldCheck className="size-5" />}
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">
+                {session ? session.name : "Pengunjung Sistem (Read Only)"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {session
+                  ? "Akses Administrator aktif. Anda dapat menambah, mengedit, mengimpor, dan mengelola ruangan."
+                  : "Anda dapat melihat data, mencari barang, & menguji scan QR. Login admin untuk mengelola."}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {session ? (
+              <button
+                type="button"
+                onClick={() => {
+                  logoutAdmin()
+                  showToast("Anda telah keluar dari sesi Admin")
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3.5 py-2 text-xs font-semibold text-rose-300 hover:bg-rose-500/20"
+              >
+                <LogOut className="size-3.5" />
+                <span>Keluar Admin</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsLoginOpen(true)}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-sky-500 px-4 py-2 text-xs font-semibold text-white shadow-md hover:bg-sky-400"
+              >
+                <LogIn className="size-3.5" />
+                <span>Login Admin</span>
+              </button>
+            )}
+          </div>
+        </div>
+
         <StatCards {...stats} />
       </div>
 
-      {/* Toolbar: Filter, Search, CRUD Actions, Import/Export */}
+      {/* Toolbar: Filters, Search, CRUD Actions */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-2">
           {FILTERS.map((f) => {
@@ -221,7 +303,7 @@ export function InventoryDashboard() {
               onChange={(e) => setKategoriFilter(e.target.value)}
               className="rounded-full border border-border bg-card py-1.5 pl-8 pr-3 text-xs font-semibold text-foreground outline-none focus:border-sky-500/50"
             >
-              <option value="all">Semua Jenis Device</option>
+              <option value="all">Semua Device</option>
               {KATEGORI_DEVICE.map((k) => (
                 <option key={k.key} value={k.key}>
                   [{k.prefix}] {k.label}
@@ -229,10 +311,27 @@ export function InventoryDashboard() {
               ))}
             </select>
           </div>
+
+          {/* Ruangan Dropdown Filter */}
+          <div className="relative inline-flex items-center">
+            <Building2 className="pointer-events-none absolute left-2.5 size-3.5 text-muted-foreground" />
+            <select
+              value={ruanganFilter}
+              onChange={(e) => setRuanganFilter(e.target.value)}
+              className="rounded-full border border-border bg-card py-1.5 pl-8 pr-3 text-xs font-semibold text-foreground outline-none focus:border-sky-500/50"
+            >
+              <option value="all">Semua Ruangan</option>
+              {rooms.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative w-full sm:w-64">
+          <div className="relative w-full sm:w-56">
             <Search
               className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
               aria-hidden
@@ -249,12 +348,22 @@ export function InventoryDashboard() {
 
           <button
             type="button"
-            onClick={() => setIsImportOpen(true)}
+            onClick={() => requireAdmin(() => setIsRoomOpen(true))}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-purple-500/30 bg-purple-500/10 px-3 py-2 text-xs font-semibold text-purple-300 transition-all hover:bg-purple-500/20"
+            title="Kelola & Tambah Ruangan Baru"
+          >
+            <Building2 className="size-3.5" />
+            <span>+ Ruangan</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => requireAdmin(() => setIsImportOpen(true))}
             className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-300 transition-all hover:bg-emerald-500/20"
             title="Impor data dari file Excel"
           >
             <Upload className="size-3.5" />
-            <span>Impor Excel</span>
+            <span>Impor</span>
           </button>
 
           <button
@@ -264,15 +373,17 @@ export function InventoryDashboard() {
             title="Ekspor data ke file Excel .xlsx"
           >
             <Download className="size-3.5" />
-            <span>Ekspor Excel</span>
+            <span>Ekspor</span>
           </button>
 
           <button
             type="button"
-            onClick={() => {
-              setEditingItem(null)
-              setIsFormOpen(true)
-            }}
+            onClick={() =>
+              requireAdmin(() => {
+                setEditingItem(null)
+                setIsFormOpen(true)
+              })
+            }
             className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white shadow-md transition-all hover:bg-emerald-500"
           >
             <Plus className="size-4" />
@@ -289,7 +400,7 @@ export function InventoryDashboard() {
           type="button"
           onClick={handleResetData}
           className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-rose-400"
-          title="Reset ke data default 193 unit"
+          title="Reset ke data default"
         >
           <RefreshCw className="size-3.5" />
           <span>Reset Default</span>
@@ -304,11 +415,10 @@ export function InventoryDashboard() {
               <tr>
                 <th className="px-4 py-3 font-medium">Kode Aset</th>
                 <th className="px-4 py-3 font-medium">Kategori</th>
-                <th className="px-4 py-3 font-medium">Jurusan</th>
+                <th className="px-4 py-3 font-medium">Unit</th>
                 <th className="px-4 py-3 font-medium">Nama Barang / Device</th>
                 <th className="px-4 py-3 font-medium">Spesifikasi</th>
-                <th className="px-4 py-3 font-medium">RAM / Storage</th>
-                <th className="px-4 py-3 font-medium">Lokasi</th>
+                <th className="px-4 py-3 font-medium">Lokasi Ruangan</th>
                 <th className="px-4 py-3 font-medium">Kondisi</th>
                 <th className="px-4 py-3 font-medium text-right">Aksi</th>
               </tr>
@@ -323,7 +433,7 @@ export function InventoryDashboard() {
                     <td className="px-4 py-3 font-mono text-xs text-sky-300">
                       <Link
                         href={`/a/${encodeURIComponent(item.kode)}`}
-                        className="hover:underline flex items-center gap-1"
+                        className="hover:underline flex items-center gap-1 font-bold"
                       >
                         <span>{item.kode}</span>
                         <ExternalLink className="size-3 text-sky-400/60" />
@@ -337,9 +447,6 @@ export function InventoryDashboard() {
                     <td className="px-4 py-3 text-muted-foreground">{item.jurusan}</td>
                     <td className="px-4 py-3 font-medium text-foreground">{item.namaPc || "-"}</td>
                     <td className="px-4 py-3 text-muted-foreground">{item.prosesor || "-"}</td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {item.ram || item.storage ? `${item.ram || "-"} / ${item.storage || "-"}` : "-"}
-                    </td>
                     <td className="px-4 py-3 text-muted-foreground">{item.lokasi || "-"}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium ${meta.className}`}>
@@ -350,10 +457,12 @@ export function InventoryDashboard() {
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           type="button"
-                          onClick={() => {
-                            setEditingItem(item)
-                            setIsFormOpen(true)
-                          }}
+                          onClick={() =>
+                            requireAdmin(() => {
+                              setEditingItem(item)
+                              setIsFormOpen(true)
+                            })
+                          }
                           className="rounded-md p-1.5 text-muted-foreground hover:bg-sky-500/15 hover:text-sky-400"
                           title="Edit Barang"
                         >
@@ -361,7 +470,7 @@ export function InventoryDashboard() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => setDeletingItem(item)}
+                          onClick={() => requireAdmin(() => setDeletingItem(item))}
                           className="rounded-md p-1.5 text-muted-foreground hover:bg-rose-500/15 hover:text-rose-400"
                           title="Hapus Barang"
                         >
@@ -383,20 +492,42 @@ export function InventoryDashboard() {
           <InventoryCard
             key={item.kode}
             item={item}
-            onEdit={() => {
-              setEditingItem(item)
-              setIsFormOpen(true)
-            }}
-            onDelete={() => setDeletingItem(item)}
+            onEdit={() =>
+              requireAdmin(() => {
+                setEditingItem(item)
+                setIsFormOpen(true)
+              })
+            }
+            onDelete={() => requireAdmin(() => setDeletingItem(item))}
           />
         ))}
       </div>
 
       {filtered.length === 0 && (
         <div className="rounded-xl border border-dashed border-border py-12 text-center text-muted-foreground">
-          Tidak ada barang yang cocok dengan pencarian.
+          Tidak ada barang yang cocok dengan pencarian / filter.
         </div>
       )}
+
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={isLoginOpen}
+        onClose={() => setIsLoginOpen(false)}
+        onSuccess={(sess) => {
+          setSession(sess)
+          showToast(`Berhasil masuk sebagai ${sess.name}`)
+        }}
+      />
+
+      {/* Room Master Management Modal */}
+      <RoomModal
+        isOpen={isRoomOpen}
+        onClose={() => setIsRoomOpen(false)}
+        onRoomsUpdated={(updatedRooms) => {
+          setRooms(updatedRooms)
+          showToast("Daftar master ruangan berhasil diperbarui")
+        }}
+      />
 
       {/* Create & Edit Modal */}
       <ItemFormModal
