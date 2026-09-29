@@ -1,11 +1,12 @@
 import * as XLSX from "xlsx"
-import { generateNextCode, type InventoryItem } from "@/lib/inventory"
+import { generateNextCode, getCategoryFromItem, type InventoryItem } from "@/lib/inventory"
 
 const EXCEL_COLUMNS = [
+  "Kategori",
   "Jurusan",
   "Kode Aset",
-  "Nama PC",
-  "Prosesor",
+  "Nama Device / Merek",
+  "Spesifikasi / Prosesor",
   "RAM",
   "Storage",
   "Sistem Operasi",
@@ -13,18 +14,19 @@ const EXCEL_COLUMNS = [
   "Keyboard",
   "Mouse",
   "Merek Casing",
-  "Motherboard",
+  "Serial Number / Motherboard",
   "Kondisi",
   "Lokasi",
   "Catatan",
 ] as const
 
-export function exportToExcel(items: InventoryItem[], filename = "Inventaris-Komputer-Al-Aqsyar.xlsx") {
+export function exportToExcel(items: InventoryItem[], filename = "Inventaris-Barang-IT-Al-Aqsyar.xlsx") {
   const dataRows = items.map((i) => ({
+    "Kategori": getCategoryFromItem(i),
     "Jurusan": i.jurusan || "-",
     "Kode Aset": i.kode || "-",
-    "Nama PC": i.namaPc || "-",
-    "Prosesor": i.prosesor || "-",
+    "Nama Device / Merek": i.namaPc || "-",
+    "Spesifikasi / Prosesor": i.prosesor || "-",
     "RAM": i.ram || "-",
     "Storage": i.storage || "-",
     "Sistem Operasi": i.os || "-",
@@ -32,7 +34,7 @@ export function exportToExcel(items: InventoryItem[], filename = "Inventaris-Kom
     "Keyboard": i.keyboard || "-",
     "Mouse": i.mouse || "-",
     "Merek Casing": i.casing || "-",
-    "Motherboard": i.motherboard || "-",
+    "Serial Number / Motherboard": i.motherboard || "-",
     "Kondisi": i.kondisi || "Baik",
     "Lokasi": i.lokasi || "-",
     "Catatan": i.catatan || "-",
@@ -40,10 +42,9 @@ export function exportToExcel(items: InventoryItem[], filename = "Inventaris-Kom
 
   const worksheet = XLSX.utils.json_to_sheet(dataRows, { header: [...EXCEL_COLUMNS] })
   
-  // Set column widths
   const colWidths = EXCEL_COLUMNS.map((col) => {
-    if (col === "Kode Aset") return { wch: 18 }
-    if (col === "Nama PC" || col === "Prosesor") return { wch: 22 }
+    if (col === "Kode Aset" || col === "Kategori") return { wch: 16 }
+    if (col === "Nama Device / Merek" || col === "Spesifikasi / Prosesor") return { wch: 25 }
     if (col === "Lokasi" || col === "Catatan") return { wch: 25 }
     return { wch: 14 }
   })
@@ -57,10 +58,11 @@ export function exportToExcel(items: InventoryItem[], filename = "Inventaris-Kom
 export function downloadTemplateExcel() {
   const sampleRows = [
     {
+      "Kategori": "PC",
       "Jurusan": "TJKT",
       "Kode Aset": "TJKT-PC-001-26",
-      "Nama PC": "LAB-TJKT-01",
-      "Prosesor": "Core i5-2400",
+      "Nama Device / Merek": "LAB-TJKT-01",
+      "Spesifikasi / Prosesor": "Core i5-2400",
       "RAM": "8 GB",
       "Storage": "128 GB SSD",
       "Sistem Operasi": "Windows 10 Pro",
@@ -68,36 +70,91 @@ export function downloadTemplateExcel() {
       "Keyboard": "Standard USB",
       "Mouse": "Standard USB",
       "Merek Casing": "Standard ATX",
-      "Motherboard": "H61 Motherboard",
+      "Serial Number / Motherboard": "H61 Motherboard",
       "Kondisi": "Baik",
       "Lokasi": "Lab TJKT",
       "Catatan": "Kondisi fisik mulus, siap pakai",
     },
     {
+      "Kategori": "LAP",
       "Jurusan": "Yayasan",
-      "Kode Aset": "YAYASAN-PC-001-26",
-      "Nama PC": "STAFF-YAYASAN-01",
-      "Prosesor": "Core i3-3220",
-      "RAM": "4 GB",
-      "Storage": "256 GB SSD",
-      "Sistem Operasi": "Windows 10 Pro",
-      "Monitor": "LG 19 INCH",
-      "Keyboard": "Standard USB",
-      "Mouse": "Standard USB",
-      "Merek Casing": "Standard ATX",
-      "Motherboard": "H61 Motherboard",
+      "Kode Aset": "YAYASAN-LAP-001-26",
+      "Nama Device / Merek": "Asus Vivobook 14",
+      "Spesifikasi / Prosesor": "Intel Core i5-1135G7",
+      "RAM": "16 GB",
+      "Storage": "512 GB SSD",
+      "Sistem Operasi": "Windows 11 Home",
+      "Monitor": "Layar 14 Inch FHD",
+      "Keyboard": "Integrated",
+      "Mouse": "Wireless Mouse",
+      "Merek Casing": "- ",
+      "Serial Number / Motherboard": "SN: K9N0CV1249124",
       "Kondisi": "Baik",
       "Lokasi": "Ruang Yayasan",
-      "Catatan": "Unit komputer kantor yayasan",
+      "Catatan": "Laptop inventaris kepala yayasan",
+    },
+    {
+      "Kategori": "PRN",
+      "Jurusan": "KEUANGAN",
+      "Kode Aset": "KEUANGAN-PRN-001-26",
+      "Nama Device / Merek": "Epson EcoTank L3210",
+      "Spesifikasi / Prosesor": "All-in-One InkTank Printer",
+      "RAM": "-",
+      "Storage": "-",
+      "Sistem Operasi": "-",
+      "Monitor": "-",
+      "Keyboard": "-",
+      "Mouse": "-",
+      "Merek Casing": "-",
+      "Serial Number / Motherboard": "SN: X92K819241",
+      "Kondisi": "Baik",
+      "Lokasi": "Ruang Keuangan",
+      "Catatan": "Printer cetak kuitansi & nota",
+    },
+    {
+      "Kategori": "PROJ",
+      "Jurusan": "MPLB",
+      "Kode Aset": "MPLB-PROJ-001-26",
+      "Nama Device / Merek": "Epson EB-X500 Projector",
+      "Spesifikasi / Prosesor": "3600 Lumens XGA 3LCD",
+      "RAM": "-",
+      "Storage": "-",
+      "Sistem Operasi": "-",
+      "Monitor": "-",
+      "Keyboard": "-",
+      "Mouse": "-",
+      "Merek Casing": "-",
+      "Serial Number / Motherboard": "SN: PROJ-918241",
+      "Kondisi": "Baik",
+      "Lokasi": "Ruang Kelas MPLB",
+      "Catatan": "Lengkap dengan remote & kabel HDMI 10m",
+    },
+    {
+      "Kategori": "RTR",
+      "Jurusan": "TJKT",
+      "Kode Aset": "TJKT-RTR-001-26",
+      "Nama Device / Merek": "MikroTik RB951Ui-2HnD",
+      "Spesifikasi / Prosesor": "600MHz CPU / 128MB RAM",
+      "RAM": "128 MB",
+      "Storage": "64 MB Flash",
+      "Sistem Operasi": "RouterOS v7",
+      "Monitor": "-",
+      "Keyboard": "-",
+      "Mouse": "-",
+      "Merek Casing": "Plastic Case",
+      "Serial Number / Motherboard": "SN: RB951-819241",
+      "Kondisi": "Baik",
+      "Lokasi": "Lab TJKT",
+      "Catatan": "Router utama lab jaringan",
     },
   ]
 
   const worksheet = XLSX.utils.json_to_sheet(sampleRows, { header: [...EXCEL_COLUMNS] })
-  worksheet["!cols"] = EXCEL_COLUMNS.map(() => ({ wch: 18 }))
+  worksheet["!cols"] = EXCEL_COLUMNS.map(() => ({ wch: 20 }))
 
   const workbook = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(workbook, worksheet, "Template Impor")
-  XLSX.writeFile(workbook, "Template-Impor-Inventaris-Al-Aqsyar.xlsx")
+  XLSX.writeFile(workbook, "Template-Impor-Inventaris-Barang-Al-Aqsyar.xlsx")
 }
 
 export async function parseExcelFile(file: File, existingItems: InventoryItem[]): Promise<InventoryItem[]> {
@@ -111,7 +168,6 @@ export async function parseExcelFile(file: File, existingItems: InventoryItem[])
   const currentTotalList = [...existingItems]
 
   rawData.forEach((row, index) => {
-    // Flexible header mapping
     const getValue = (keys: string[]) => {
       for (const k of keys) {
         if (row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== "") {
@@ -122,18 +178,20 @@ export async function parseExcelFile(file: File, existingItems: InventoryItem[])
     }
 
     const jurusan = getValue(["Jurusan", "jurusan", "JURUSAN", "Unit", "unit"]) || "TJKT"
+    const kategori = getValue(["Kategori", "kategori", "KATEGORI", "Jenis", "jenis"]) || "PC"
     let kode = getValue(["Kode Aset", "kode", "Kode", "KODE ASET", "KODE"])
-    
+
     if (!kode) {
-      kode = generateNextCode(jurusan, [...currentTotalList, ...items])
+      kode = generateNextCode(jurusan, kategori, [...currentTotalList, ...items])
     }
 
     const item: InventoryItem = {
       jurusan: jurusan.toUpperCase(),
       no: String(index + 1),
       kode: kode,
-      namaPc: getValue(["Nama PC", "namaPc", "NAMA PC", "Nama", "nama"]),
-      prosesor: getValue(["Prosesor", "prosesor", "PROSESOR", "Processor", "processor"]),
+      kategori: kategori.toUpperCase(),
+      namaPc: getValue(["Nama Device / Merek", "Nama PC", "namaPc", "NAMA PC", "Nama", "nama"]),
+      prosesor: getValue(["Spesifikasi / Prosesor", "Prosesor", "prosesor", "PROSESOR", "Processor"]),
       ram: getValue(["RAM", "ram", "Ram"]),
       storage: getValue(["Storage", "storage", "Penyimpanan", "STORAGE"]),
       os: getValue(["Sistem Operasi", "os", "OS", "Operating System"]),
@@ -141,7 +199,7 @@ export async function parseExcelFile(file: File, existingItems: InventoryItem[])
       keyboard: getValue(["Keyboard", "keyboard"]),
       mouse: getValue(["Mouse", "mouse"]),
       casing: getValue(["Merek Casing", "casing", "Casing", "CASING"]),
-      motherboard: getValue(["Motherboard", "motherboard", "MOTHERBOARD"]),
+      motherboard: getValue(["Serial Number / Motherboard", "Motherboard", "motherboard", "SN"]),
       kondisi: getValue(["Kondisi", "kondisi", "KONDISI", "Status", "status"]) || "Baik",
       lokasi: getValue(["Lokasi", "lokasi", "Ruangan", "ruangan"]) || `Lab ${jurusan}`,
       catatan: getValue(["Catatan", "catatan", "Keterangan", "keterangan"]),

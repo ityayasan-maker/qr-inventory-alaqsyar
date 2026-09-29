@@ -14,18 +14,20 @@ import {
   ExternalLink,
   CheckCircle2,
   RefreshCw,
-  FileSpreadsheet,
   Download,
   Upload,
+  Filter,
 } from "lucide-react"
 import {
   inventory as defaultRawInventory,
   JURUSAN,
+  KATEGORI_DEVICE,
   getStats,
   kondisiStatus,
   kondisiMeta,
   getStoredInventory,
   saveStoredInventory,
+  getCategoryFromItem,
   type InventoryItem,
 } from "@/lib/inventory"
 import { StatCards } from "@/components/stat-cards"
@@ -35,13 +37,14 @@ import { ImportModal } from "@/components/import-modal"
 import { exportToExcel } from "@/lib/excel-utils"
 
 const FILTERS = [
-  { key: "all", label: "Semua" },
+  { key: "all", label: "Semua Unit" },
   ...JURUSAN.map((j) => ({ key: j.key, label: j.label })),
 ] as const
 
 export function InventoryDashboard() {
   const [items, setItems] = useState<InventoryItem[]>(defaultRawInventory)
   const [jurusan, setJurusan] = useState<string>("all")
+  const [kategoriFilter, setKategoriFilter] = useState<string>("all")
   const [query, setQuery] = useState("")
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isImportOpen, setIsImportOpen] = useState(false)
@@ -73,13 +76,17 @@ export function InventoryDashboard() {
     const q = query.trim().toLowerCase()
     return items.filter((i) => {
       if (jurusan !== "all" && i.jurusan !== jurusan) return false
+      if (kategoriFilter !== "all") {
+        const itemKat = getCategoryFromItem(i)
+        if (itemKat !== kategoriFilter) return false
+      }
       if (!q) return true
       return [i.kode, i.namaPc, i.prosesor, i.motherboard, i.os, i.monitor, i.casing, i.lokasi]
         .join(" ")
         .toLowerCase()
         .includes(q)
     })
-  }, [items, jurusan, query])
+  }, [items, jurusan, kategoriFilter, query])
 
   const stats = useMemo(() => getStats(filtered), [filtered])
 
@@ -97,7 +104,6 @@ export function InventoryDashboard() {
     setItems(updatedList)
     saveStoredInventory(updatedList)
 
-    // Sync with API route (background attempt)
     try {
       await fetch("/api/inventory", {
         method: isEdit ? "PUT" : "POST",
@@ -108,7 +114,7 @@ export function InventoryDashboard() {
       console.warn("API sync skipped or offline:", e)
     }
 
-    showToast(isEdit ? `Unit ${itemToSave.kode} berhasil diperbarui` : `Unit ${itemToSave.kode} berhasil ditambahkan`)
+    showToast(isEdit ? `Barang ${itemToSave.kode} berhasil diperbarui` : `Barang ${itemToSave.kode} berhasil ditambahkan`)
   }
 
   const handleDeleteItem = async (itemToDelete: InventoryItem) => {
@@ -124,7 +130,7 @@ export function InventoryDashboard() {
       console.warn("API delete skipped:", e)
     }
 
-    showToast(`Unit ${itemToDelete.kode} berhasil dihapus`)
+    showToast(`Barang ${itemToDelete.kode} berhasil dihapus`)
   }
 
   const handleImportComplete = (importedItems: InventoryItem[], strategy: "merge" | "append") => {
@@ -142,7 +148,6 @@ export function InventoryDashboard() {
     setItems(updatedList)
     saveStoredInventory(updatedList)
 
-    // Background sync each imported item to API
     importedItems.forEach(async (item) => {
       try {
         await fetch("/api/inventory", {
@@ -155,12 +160,12 @@ export function InventoryDashboard() {
       }
     })
 
-    showToast(`Berhasil mengimpor ${importedItems.length} unit komputer dari Excel`)
+    showToast(`Berhasil mengimpor ${importedItems.length} barang dari Excel`)
   }
 
   const handleExportExcel = () => {
-    exportToExcel(filtered, `Inventaris-Komputer-Al-Aqsyar-${new Date().toISOString().slice(0, 10)}.xlsx`)
-    showToast(`Data ${filtered.length} unit berhasil diekspor ke Excel`)
+    exportToExcel(filtered, `Inventaris-Barang-IT-Al-Aqsyar-${new Date().toISOString().slice(0, 10)}.xlsx`)
+    showToast(`Data ${filtered.length} barang berhasil diekspor ke Excel`)
   }
 
   const handleResetData = () => {
@@ -188,7 +193,7 @@ export function InventoryDashboard() {
 
       {/* Toolbar: Filter, Search, CRUD Actions, Import/Export */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {FILTERS.map((f) => {
             const active = jurusan === f.key
             return (
@@ -207,6 +212,23 @@ export function InventoryDashboard() {
               </button>
             )
           })}
+
+          {/* Kategori Dropdown Filter */}
+          <div className="relative inline-flex items-center">
+            <Filter className="pointer-events-none absolute left-2.5 size-3.5 text-muted-foreground" />
+            <select
+              value={kategoriFilter}
+              onChange={(e) => setKategoriFilter(e.target.value)}
+              className="rounded-full border border-border bg-card py-1.5 pl-8 pr-3 text-xs font-semibold text-foreground outline-none focus:border-sky-500/50"
+            >
+              <option value="all">Semua Jenis Device</option>
+              {KATEGORI_DEVICE.map((k) => (
+                <option key={k.key} value={k.key}>
+                  [{k.prefix}] {k.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -219,7 +241,7 @@ export function InventoryDashboard() {
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Cari kode, prosesor, motherboard..."
+              placeholder="Cari kode, barang, spesifikasi..."
               className="w-full rounded-lg border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-sky-500/50"
               aria-label="Cari inventaris"
             />
@@ -254,14 +276,14 @@ export function InventoryDashboard() {
             className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white shadow-md transition-all hover:bg-emerald-500"
           >
             <Plus className="size-4" />
-            <span>Tambah Unit</span>
+            <span>Tambah Barang</span>
           </button>
         </div>
       </div>
 
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <p>
-          Menampilkan <span className="font-semibold text-foreground">{filtered.length}</span> unit
+          Menampilkan <span className="font-semibold text-foreground">{filtered.length}</span> barang / device
         </p>
         <button
           type="button"
@@ -281,12 +303,12 @@ export function InventoryDashboard() {
             <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 font-medium">Kode Aset</th>
+                <th className="px-4 py-3 font-medium">Kategori</th>
                 <th className="px-4 py-3 font-medium">Jurusan</th>
-                <th className="px-4 py-3 font-medium">Nama PC</th>
-                <th className="px-4 py-3 font-medium">Prosesor</th>
-                <th className="px-4 py-3 font-medium">RAM</th>
-                <th className="px-4 py-3 font-medium">Storage</th>
-                <th className="px-4 py-3 font-medium">Monitor</th>
+                <th className="px-4 py-3 font-medium">Nama Barang / Device</th>
+                <th className="px-4 py-3 font-medium">Spesifikasi</th>
+                <th className="px-4 py-3 font-medium">RAM / Storage</th>
+                <th className="px-4 py-3 font-medium">Lokasi</th>
                 <th className="px-4 py-3 font-medium">Kondisi</th>
                 <th className="px-4 py-3 font-medium text-right">Aksi</th>
               </tr>
@@ -295,6 +317,7 @@ export function InventoryDashboard() {
               {filtered.map((item) => {
                 const status = kondisiStatus(item.kondisi)
                 const meta = kondisiMeta[status]
+                const katKey = getCategoryFromItem(item)
                 return (
                   <tr key={item.kode} className="transition-colors hover:bg-muted/30">
                     <td className="px-4 py-3 font-mono text-xs text-sky-300">
@@ -306,12 +329,18 @@ export function InventoryDashboard() {
                         <ExternalLink className="size-3 text-sky-400/60" />
                       </Link>
                     </td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex rounded-md border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 font-mono text-xs font-bold text-sky-300">
+                        {katKey}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 text-muted-foreground">{item.jurusan}</td>
                     <td className="px-4 py-3 font-medium text-foreground">{item.namaPc || "-"}</td>
                     <td className="px-4 py-3 text-muted-foreground">{item.prosesor || "-"}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{item.ram || "-"}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{item.storage || "-"}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{item.monitor || "-"}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {item.ram || item.storage ? `${item.ram || "-"} / ${item.storage || "-"}` : "-"}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">{item.lokasi || "-"}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium ${meta.className}`}>
                         {meta.label}
@@ -326,7 +355,7 @@ export function InventoryDashboard() {
                             setIsFormOpen(true)
                           }}
                           className="rounded-md p-1.5 text-muted-foreground hover:bg-sky-500/15 hover:text-sky-400"
-                          title="Edit Unit"
+                          title="Edit Barang"
                         >
                           <Pencil className="size-4" />
                         </button>
@@ -334,7 +363,7 @@ export function InventoryDashboard() {
                           type="button"
                           onClick={() => setDeletingItem(item)}
                           className="rounded-md p-1.5 text-muted-foreground hover:bg-rose-500/15 hover:text-rose-400"
-                          title="Hapus Unit"
+                          title="Hapus Barang"
                         >
                           <Trash2 className="size-4" />
                         </button>
@@ -365,7 +394,7 @@ export function InventoryDashboard() {
 
       {filtered.length === 0 && (
         <div className="rounded-xl border border-dashed border-border py-12 text-center text-muted-foreground">
-          Tidak ada unit yang cocok dengan pencarian.
+          Tidak ada barang yang cocok dengan pencarian.
         </div>
       )}
 
@@ -413,15 +442,22 @@ function InventoryCard({
 }) {
   const status = kondisiStatus(item.kondisi)
   const meta = kondisiMeta[status]
+  const katKey = getCategoryFromItem(item)
+
   return (
     <div className="rounded-xl border border-border bg-card p-4">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <Link href={`/a/${encodeURIComponent(item.kode)}`} className="font-mono text-xs text-sky-300 hover:underline flex items-center gap-1">
-            <span>{item.kode}</span>
-            <ExternalLink className="size-3" />
-          </Link>
-          <p className="mt-0.5 font-medium text-foreground">{item.namaPc || "Tanpa Nama"}</p>
+          <div className="flex items-center gap-1.5">
+            <span className="rounded border border-sky-500/30 bg-sky-500/10 px-1.5 py-0.2 font-mono text-[10px] font-bold text-sky-300">
+              {katKey}
+            </span>
+            <Link href={`/a/${encodeURIComponent(item.kode)}`} className="font-mono text-xs text-sky-300 hover:underline flex items-center gap-1">
+              <span>{item.kode}</span>
+              <ExternalLink className="size-3" />
+            </Link>
+          </div>
+          <p className="mt-1 font-medium text-foreground">{item.namaPc || "Tanpa Nama"}</p>
         </div>
         <span className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-medium ${meta.className}`}>
           {meta.label}
@@ -431,7 +467,7 @@ function InventoryCard({
         <Spec icon={Cpu} label={item.prosesor} />
         <Spec icon={MemoryStick} label={item.ram} />
         <Spec icon={HardDrive} label={item.storage} />
-        <Spec icon={MapPin} label={item.jurusan} />
+        <Spec icon={MapPin} label={`${item.jurusan} (${item.lokasi || "-"})`} />
       </dl>
       <div className="mt-4 flex items-center justify-end gap-2 border-t border-border pt-3">
         <button

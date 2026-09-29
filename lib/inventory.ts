@@ -4,6 +4,7 @@ export type InventoryItem = {
   jurusan: string
   no: string
   kode: string
+  kategori?: string
   namaPc: string
   prosesor: string
   ram: string
@@ -32,6 +33,20 @@ export const JURUSAN = [
   { key: "BC", label: "Bisnis Center" },
   { key: "PPDB", label: "PPDB" },
   { key: "KEUANGAN", label: "Keuangan" },
+] as const
+
+export const KATEGORI_DEVICE = [
+  { key: "PC", label: "PC / Desktop (Unit Lengkap)", prefix: "PC" },
+  { key: "CPU", label: "CPU / Unit Prosesor", prefix: "CPU" },
+  { key: "MON", label: "Monitor", prefix: "MON" },
+  { key: "LAP", label: "Laptop", prefix: "LAP" },
+  { key: "KEY", label: "Keyboard", prefix: "KEY" },
+  { key: "MOU", label: "Mouse", prefix: "MOU" },
+  { key: "PRN", label: "Printer", prefix: "PRN" },
+  { key: "PROJ", label: "Proyektor / LCD", prefix: "PROJ" },
+  { key: "UPS", label: "UPS / Stabilizer", prefix: "UPS" },
+  { key: "RTR", label: "Router / Perangkat Jaringan", prefix: "RTR" },
+  { key: "LAIN", label: "Elektronik Lainnya", prefix: "LAIN" },
 ] as const
 
 export type KondisiStatus = "baik" | "bermasalah" | "mati"
@@ -87,12 +102,30 @@ export function saveStoredInventory(items: InventoryItem[]) {
   }
 }
 
-export function generateNextCode(jurusan: string, items: InventoryItem[]): string {
-  const prefix = jurusan.toUpperCase()
-  const sameJurusan = items.filter((i) => i.jurusan.toUpperCase() === prefix)
+export function getCategoryFromItem(item: InventoryItem): string {
+  if (item.kategori) return item.kategori
+  const parts = item.kode.split("-")
+  if (parts.length >= 2) {
+    const codePart = parts[1].toUpperCase()
+    const found = KATEGORI_DEVICE.find((k) => k.prefix === codePart)
+    if (found) return found.key
+  }
+  return "PC"
+}
+
+export function generateNextCode(
+  jurusan: string,
+  kategoriPrefix: string = "PC",
+  items: InventoryItem[]
+): string {
+  const prefixJurusan = jurusan.toUpperCase()
+  const prefixKat = (kategoriPrefix || "PC").toUpperCase()
+
+  const regex = new RegExp(`^${prefixJurusan}-${prefixKat}-(\\d+)-`, "i")
   let maxNum = 0
-  sameJurusan.forEach((item) => {
-    const match = item.kode.match(/-(\d+)-/)
+
+  items.forEach((item) => {
+    const match = item.kode.match(regex)
     if (match) {
       const num = parseInt(match[1], 10)
       if (!isNaN(num) && num > maxNum) {
@@ -100,7 +133,8 @@ export function generateNextCode(jurusan: string, items: InventoryItem[]): strin
       }
     }
   })
+
   const nextNum = String(maxNum + 1).padStart(3, "0")
   const yearSuffix = new Date().getFullYear().toString().slice(-2)
-  return `${prefix}-PC-${nextNum}-${yearSuffix}`
+  return `${prefixJurusan}-${prefixKat}-${nextNum}-${yearSuffix}`
 }
