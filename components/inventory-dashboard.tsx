@@ -14,6 +14,9 @@ import {
   ExternalLink,
   CheckCircle2,
   RefreshCw,
+  FileSpreadsheet,
+  Download,
+  Upload,
 } from "lucide-react"
 import {
   inventory as defaultRawInventory,
@@ -28,6 +31,8 @@ import {
 import { StatCards } from "@/components/stat-cards"
 import { ItemFormModal } from "@/components/item-form-modal"
 import { DeleteConfirmModal } from "@/components/delete-confirm-modal"
+import { ImportModal } from "@/components/import-modal"
+import { exportToExcel } from "@/lib/excel-utils"
 
 const FILTERS = [
   { key: "all", label: "Semua" },
@@ -39,6 +44,7 @@ export function InventoryDashboard() {
   const [jurusan, setJurusan] = useState<string>("all")
   const [query, setQuery] = useState("")
   const [isFormOpen, setIsFormOpen] = useState(false)
+  const [isImportOpen, setIsImportOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null)
   const [deletingItem, setDeletingItem] = useState<InventoryItem | null>(null)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
@@ -121,6 +127,42 @@ export function InventoryDashboard() {
     showToast(`Unit ${itemToDelete.kode} berhasil dihapus`)
   }
 
+  const handleImportComplete = (importedItems: InventoryItem[], strategy: "merge" | "append") => {
+    let updatedList: InventoryItem[]
+
+    if (strategy === "merge") {
+      const itemMap = new Map<string, InventoryItem>()
+      items.forEach((i) => itemMap.set(i.kode, i))
+      importedItems.forEach((i) => itemMap.set(i.kode, i))
+      updatedList = Array.from(itemMap.values())
+    } else {
+      updatedList = [...importedItems, ...items]
+    }
+
+    setItems(updatedList)
+    saveStoredInventory(updatedList)
+
+    // Background sync each imported item to API
+    importedItems.forEach(async (item) => {
+      try {
+        await fetch("/api/inventory", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(item),
+        })
+      } catch (e) {
+        // ignore
+      }
+    })
+
+    showToast(`Berhasil mengimpor ${importedItems.length} unit komputer dari Excel`)
+  }
+
+  const handleExportExcel = () => {
+    exportToExcel(filtered, `Inventaris-Komputer-Al-Aqsyar-${new Date().toISOString().slice(0, 10)}.xlsx`)
+    showToast(`Data ${filtered.length} unit berhasil diekspor ke Excel`)
+  }
+
   const handleResetData = () => {
     if (confirm("Reset data ke versi default 193 unit awal? Perubahan lokal akan dikembalikan.")) {
       setItems(defaultRawInventory)
@@ -144,8 +186,8 @@ export function InventoryDashboard() {
         <StatCards {...stats} />
       </div>
 
-      {/* Toolbar: Filter, Search, CRUD Actions */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      {/* Toolbar: Filter, Search, CRUD Actions, Import/Export */}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap gap-2">
           {FILTERS.map((f) => {
             const active = jurusan === f.key
@@ -185,11 +227,31 @@ export function InventoryDashboard() {
 
           <button
             type="button"
+            onClick={() => setIsImportOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-300 transition-all hover:bg-emerald-500/20"
+            title="Impor data dari file Excel"
+          >
+            <Upload className="size-3.5" />
+            <span>Impor Excel</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-xs font-semibold text-sky-300 transition-all hover:bg-sky-500/20"
+            title="Ekspor data ke file Excel .xlsx"
+          >
+            <Download className="size-3.5" />
+            <span>Ekspor Excel</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => {
               setEditingItem(null)
               setIsFormOpen(true)
             }}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-sm font-semibold text-white shadow-md transition-all hover:bg-emerald-500"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white shadow-md transition-all hover:bg-emerald-500"
           >
             <Plus className="size-4" />
             <span>Tambah Unit</span>
@@ -316,6 +378,14 @@ export function InventoryDashboard() {
         }}
         onSave={handleSaveItem}
         initialData={editingItem}
+        existingItems={items}
+      />
+
+      {/* Import Excel Modal */}
+      <ImportModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        onImportComplete={handleImportComplete}
         existingItems={items}
       />
 
