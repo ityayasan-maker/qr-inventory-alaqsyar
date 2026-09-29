@@ -6,8 +6,38 @@ import { Download, Printer, Search, QrCode, Check } from "lucide-react"
 import { inventory as defaultRawInventory, getStoredInventory, JURUSAN, type InventoryItem } from "@/lib/inventory"
 
 const LABELS = {
-  small: { name: "50 × 30 mm", w: 50, h: 30 },
-  large: { name: "70 × 40 mm", w: 70, h: 40 },
+  compact4col: {
+    name: "⚡ Super Hemat (4 Kolom • Hanya QR & Kode Aset)",
+    w: 44,
+    h: 30,
+    qrPx: 75,
+    fontSize: 7.5,
+    compact: true,
+  },
+  mini4col: {
+    name: "📏 Mini Stiker (4 Kolom • 38 × 24 mm)",
+    w: 38,
+    h: 24,
+    qrPx: 60,
+    fontSize: 6.5,
+    compact: true,
+  },
+  small: {
+    name: "Standar 50 × 30 mm (Dengan Details)",
+    w: 50,
+    h: 30,
+    qrPx: 90,
+    fontSize: 8,
+    compact: false,
+  },
+  large: {
+    name: "Besar 70 × 40 mm (Dengan Details)",
+    w: 70,
+    h: 40,
+    qrPx: 120,
+    fontSize: 10,
+    compact: false,
+  },
 } as const
 
 type LabelSize = keyof typeof LABELS
@@ -22,7 +52,7 @@ export function QrLabelTool() {
   const [query, setQuery] = useState("")
   const [jurusan, setJurusan] = useState("all")
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [size, setSize] = useState<LabelSize>("large")
+  const [size, setSize] = useState<LabelSize>("compact4col")
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -67,7 +97,8 @@ export function QrLabelTool() {
     if (selectedItems.length === 0) return
     setBusy(true)
     try {
-      const { w, h } = LABELS[size]
+      const labelConfig = LABELS[size]
+      const { w, h, qrPx, fontSize, compact } = labelConfig
 
       const qrByKode = new Map<string, string>()
       await Promise.all(
@@ -81,7 +112,6 @@ export function QrLabelTool() {
         }),
       )
 
-      const qrPx = Math.round((h - 6) * 3.78)
       const escapeHtml = (s: string) =>
         s.replace(/[&<>"']/g, (c) =>
           c === "&"
@@ -98,6 +128,12 @@ export function QrLabelTool() {
       const labels = selectedItems
         .map((item) => {
           const qr = qrByKode.get(item.kode) ?? ""
+          if (compact) {
+            return `<div class="label compact">
+                <img class="qr" src="${qr}" alt="QR ${escapeHtml(item.kode)}" />
+                <div class="kode">${escapeHtml(item.kode)}</div>
+              </div>`
+          }
           return `<div class="label">
               <img class="qr" src="${qr}" alt="QR ${escapeHtml(item.kode)}" />
               <div class="meta">
@@ -116,34 +152,43 @@ export function QrLabelTool() {
         <meta charset="utf-8" />
         <title>Label QR Inventaris Al-Aqsyar</title>
         <style>
-          @page { size: A4; margin: 8mm; }
+          @page { size: A4; margin: 6mm; }
           * { box-sizing: border-box; }
-          body { margin: 0; font-family: Arial, Helvetica, sans-serif; color: #111; }
+          body { margin: 0; font-family: Arial, Helvetica, sans-serif; color: #000; background: #fff; }
           .sheet {
             display: flex;
             flex-wrap: wrap;
-            gap: 4mm;
+            gap: 2.5mm 3mm;
             align-content: flex-start;
+            justify-content: flex-start;
           }
           .label {
             width: ${w}mm;
             height: ${h}mm;
-            border: 0.2mm solid #b4b4b4;
+            border: 0.2mm dashed #aaa;
             border-radius: 1.5mm;
-            padding: 2mm;
+            padding: 1.5mm;
             display: flex;
             align-items: center;
             gap: 2mm;
             overflow: hidden;
             page-break-inside: avoid;
           }
-          .qr { width: ${qrPx}px; height: ${qrPx}px; flex-shrink: 0; }
+          .label.compact {
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 0.8mm;
+            text-align: center;
+            padding: 1mm 0.5mm;
+          }
+          .qr { width: ${qrPx}px; height: ${qrPx}px; flex-shrink: 0; display: block; margin: 0 auto; }
+          .kode { font-size: ${fontSize}pt; font-weight: 800; font-family: "Courier New", monospace, sans-serif; letter-spacing: -0.2px; text-align: center; color: #000; line-height: 1; }
           .meta { min-width: 0; line-height: 1.2; }
-          .org { font-size: ${size === "large" ? 8 : 6.5}pt; font-weight: 700; }
-          .kode { font-size: ${size === "large" ? 10 : 8}pt; font-weight: 700; font-family: "Courier New", monospace; }
-          .nama { font-size: ${size === "large" ? 8 : 6.5}pt; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-          .jurusan { font-size: ${size === "large" ? 7.5 : 6}pt; color: #555; margin-top: 0.5mm; }
-          @media print { .label { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+          .org { font-size: 7pt; font-weight: 700; }
+          .nama { font-size: 6.5pt; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+          .jurusan { font-size: 6pt; color: #555; margin-top: 0.5mm; }
+          @media print { body { background: #fff; } .label { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
         </style>
         </head>
         <body>
@@ -196,11 +241,11 @@ export function QrLabelTool() {
 
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <label className="flex items-center gap-2 text-sm text-muted-foreground">
-              Ukuran label
+              Ukuran & Layout Label
               <select
                 value={size}
                 onChange={(e) => setSize(e.target.value as LabelSize)}
-                className="rounded-lg border border-border bg-card px-2 py-1.5 text-sm text-foreground outline-none focus:border-sky-500/50"
+                className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground outline-none focus:border-sky-500/50"
               >
                 {Object.entries(LABELS).map(([k, v]) => (
                   <option key={k} value={k}>
@@ -221,7 +266,7 @@ export function QrLabelTool() {
               ) : (
                 <>
                   <Printer className="size-4" aria-hidden />
-                  Unduh PDF Label
+                  Cetak PDF (4 Kolom Hemat)
                 </>
               )}
             </button>
@@ -266,7 +311,7 @@ export function QrLabelTool() {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {filtered.map((item) => (
           <QrCard
             key={item.kode}
@@ -301,7 +346,7 @@ function QrCard({
     if (canvasRef.current) {
       QRCode.toCanvas(canvasRef.current, assetUrl(item.kode), {
         margin: 1,
-        width: 120,
+        width: 100,
         errorCorrectionLevel: "M",
       }).catch(() => {})
     }
@@ -321,17 +366,14 @@ function QrCard({
 
   return (
     <div
-      className={`rounded-xl border bg-card p-4 transition-colors ${
+      className={`rounded-xl border bg-card p-3 transition-colors ${
         checked ? "border-sky-500/60 ring-1 ring-sky-500/30" : "border-border"
       }`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="truncate font-mono text-xs text-sky-300">{item.kode}</p>
-          <p className="mt-0.5 truncate text-sm font-medium text-foreground">
-            {item.namaPc || "Tanpa Nama"}
-          </p>
-          <p className="text-xs text-muted-foreground">{item.jurusan}</p>
+          <p className="truncate font-mono text-xs font-bold text-sky-300">{item.kode}</p>
+          <p className="truncate text-xs text-muted-foreground">{item.jurusan}</p>
         </div>
         <button
           type="button"
@@ -348,26 +390,26 @@ function QrCard({
         </button>
       </div>
 
-      <div className="mt-3 flex justify-center rounded-lg bg-white p-3">
+      <div className="mt-2 flex justify-center rounded-lg bg-white p-2">
         <canvas ref={canvasRef} aria-label={`QR untuk ${item.kode}`} />
       </div>
 
-      <div className="mt-3 flex gap-2">
+      <div className="mt-2 flex gap-1.5">
         <a
           href={`/a/${encodeURIComponent(item.kode)}`}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border bg-card py-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+          className="inline-flex flex-1 items-center justify-center gap-1 rounded-md border border-border bg-card py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
         >
-          <QrCode className="size-3.5" aria-hidden />
-          Uji Scan
+          <QrCode className="size-3" aria-hidden />
+          Scan
         </a>
         <button
           type="button"
           onClick={downloadPng}
-          className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-border bg-card py-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+          className="inline-flex flex-1 items-center justify-center gap-1 rounded-md border border-border bg-card py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
         >
-          <Download className="size-3.5" aria-hidden />
+          <Download className="size-3" aria-hidden />
           PNG
         </button>
       </div>
