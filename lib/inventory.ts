@@ -74,7 +74,7 @@ export function getStats(items: InventoryItem[]) {
   return { total, baik, bermasalah, mati }
 }
 
-const LOCAL_STORAGE_KEY = "qr_inventory_items_v1"
+const LOCAL_STORAGE_KEY = "qr_inventory_items_v2"
 
 export function getStoredInventory(): InventoryItem[] {
   if (typeof window === "undefined") return inventory
