@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { X, Save, PlusCircle, CheckCircle } from "lucide-react"
+import { X, Save, PlusCircle, CheckCircle, RefreshCw } from "lucide-react"
 import {
   JURUSAN,
   KATEGORI_DEVICE,
@@ -61,26 +61,31 @@ export function ItemFormModal({
     } else {
       const initJurusan = "TJKT"
       const initKat = "PC"
-      const newCode = generateNextCode(initJurusan, initKat, existingItems)
+      const initLokasi = "Lab TJKT"
+      const newCode = generateNextCode(initLokasi, initKat, existingItems)
       setFormData({
         ...defaultForm,
         jurusan: initJurusan,
         kategori: initKat,
         kode: newCode,
-        lokasi: `Lab ${initJurusan}`,
+        lokasi: initLokasi,
       })
     }
   }, [initialData, isOpen, existingItems])
 
+  const recalculateCode = (targetLokasi: string, targetKatKey: string) => {
+    const katObj = KATEGORI_DEVICE.find((k) => k.key === targetKatKey)
+    const prefix = katObj ? katObj.prefix : "PC"
+    return generateNextCode(targetLokasi, prefix, existingItems)
+  }
+
   const handleJurusanChange = (newJurusan: string) => {
-    const currentKat = formData.kategori || "PC"
     if (!isEditing) {
-      const newCode = generateNextCode(newJurusan, currentKat, existingItems)
+      const newCode = recalculateCode(formData.lokasi || newJurusan, formData.kategori || "PC")
       setFormData((prev) => ({
         ...prev,
         jurusan: newJurusan,
         kode: newCode,
-        lokasi: `Lab ${newJurusan}`,
       }))
     } else {
       setFormData((prev) => ({ ...prev, jurusan: newJurusan }))
@@ -88,10 +93,8 @@ export function ItemFormModal({
   }
 
   const handleKategoriChange = (newKatKey: string) => {
-    const katObj = KATEGORI_DEVICE.find((k) => k.key === newKatKey)
-    const prefix = katObj ? katObj.prefix : "PC"
     if (!isEditing) {
-      const newCode = generateNextCode(formData.jurusan, prefix, existingItems)
+      const newCode = recalculateCode(formData.lokasi, newKatKey)
       setFormData((prev) => ({
         ...prev,
         kategori: newKatKey,
@@ -99,6 +102,19 @@ export function ItemFormModal({
       }))
     } else {
       setFormData((prev) => ({ ...prev, kategori: newKatKey }))
+    }
+  }
+
+  const handleLokasiChange = (newLokasi: string) => {
+    if (!isEditing) {
+      const newCode = recalculateCode(newLokasi, formData.kategori || "PC")
+      setFormData((prev) => ({
+        ...prev,
+        lokasi: newLokasi,
+        kode: newCode,
+      }))
+    } else {
+      setFormData((prev) => ({ ...prev, lokasi: newLokasi }))
     }
   }
 
@@ -130,7 +146,7 @@ export function ItemFormModal({
               <p className="text-xs text-muted-foreground">
                 {isEditing
                   ? "Perbarui rincian spesifikasi atau kondisi barang"
-                  : "Tambahkan perangkat IT baru (PC, Laptop, Printer, Router, LCD, dll)"}
+                  : "Kode aset tergenerasi otomatis secara cerdas sesuai ruangan & kategori yang dipilih"}
               </p>
             </div>
           </div>
@@ -146,6 +162,28 @@ export function ItemFormModal({
         {/* Modal Body / Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {/* Lokasi Ruangan */}
+            <div>
+              <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                Lokasi Ruangan * (Mempengaruhi Prefix Kode Aset)
+              </label>
+              <select
+                value={formData.lokasi}
+                onChange={(e) => handleLokasiChange(e.target.value)}
+                className="w-full rounded-lg border border-sky-500/40 bg-sky-500/10 px-3 py-2 text-sm font-bold text-sky-300 outline-none focus:border-sky-500"
+                required
+              >
+                {rooms.map((room) => (
+                  <option key={room} value={room} className="bg-card text-foreground">
+                    {room}
+                  </option>
+                ))}
+                {!rooms.includes(formData.lokasi) && formData.lokasi && (
+                  <option value={formData.lokasi} className="bg-card text-foreground">{formData.lokasi}</option>
+                )}
+              </select>
+            </div>
+
             {/* Kategori Device */}
             <div>
               <label className="block text-xs font-semibold text-muted-foreground mb-1">
@@ -165,7 +203,37 @@ export function ItemFormModal({
               </select>
             </div>
 
-            {/* Jurusan */}
+            {/* Kode Aset Auto */}
+            <div className="sm:col-span-2">
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold text-muted-foreground">
+                  Kode Aset Otomatis (Format: RUANGAN-KATEGORI-000-YY) *
+                </label>
+                {!isEditing && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newCode = recalculateCode(formData.lokasi, formData.kategori || "PC")
+                      setFormData((prev) => ({ ...prev, kode: newCode }))
+                    }}
+                    className="inline-flex items-center gap-1 text-[11px] text-sky-400 hover:underline"
+                  >
+                    <RefreshCw className="size-3" />
+                    <span>Regenerate Kode</span>
+                  </button>
+                )}
+              </div>
+              <input
+                type="text"
+                value={formData.kode}
+                onChange={(e) => setFormData({ ...formData, kode: e.target.value })}
+                className="w-full font-mono text-sm font-extrabold rounded-lg border border-sky-500/50 bg-background px-3 py-2.5 text-sky-300 outline-none focus:border-sky-500"
+                placeholder="Contoh: SERVER-LAP-001-26"
+                required
+              />
+            </div>
+
+            {/* Jurusan / Unit Pemilik */}
             <div>
               <label className="block text-xs font-semibold text-muted-foreground mb-1">
                 Jurusan / Unit Pemilik *
@@ -182,21 +250,6 @@ export function ItemFormModal({
                   </option>
                 ))}
               </select>
-            </div>
-
-            {/* Kode Aset */}
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                Kode Aset Otomatis * (Format: JURUSAN-KATEGORI-000-YY)
-              </label>
-              <input
-                type="text"
-                value={formData.kode}
-                onChange={(e) => setFormData({ ...formData, kode: e.target.value })}
-                className="w-full font-mono text-xs font-bold rounded-lg border border-border bg-background px-3 py-2 text-sky-400 outline-none focus:border-sky-500"
-                placeholder="Contoh: TJKT-LAP-001-26"
-                required
-              />
             </div>
 
             {/* Nama Device / Merek */}
@@ -228,28 +281,6 @@ export function ItemFormModal({
                 <option value="Baik">Baik</option>
                 <option value="Bermasalah">Bermasalah</option>
                 <option value="Mati / Rusak">Mati / Rusak</option>
-              </select>
-            </div>
-
-            {/* Lokasi Ruangan (Pilihan Master Ruangan) */}
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                Lokasi Ruangan *
-              </label>
-              <select
-                value={formData.lokasi}
-                onChange={(e) => setFormData({ ...formData, lokasi: e.target.value })}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-sky-500"
-                required
-              >
-                {rooms.map((room) => (
-                  <option key={room} value={room}>
-                    {room}
-                  </option>
-                ))}
-                {!rooms.includes(formData.lokasi) && formData.lokasi && (
-                  <option value={formData.lokasi}>{formData.lokasi}</option>
-                )}
               </select>
             </div>
 

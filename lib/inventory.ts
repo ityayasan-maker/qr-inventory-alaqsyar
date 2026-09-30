@@ -113,15 +113,45 @@ export function getCategoryFromItem(item: InventoryItem): string {
   return "PC"
 }
 
+export function derivePrefixFromRoomOrUnit(unitOrRoom: string): string {
+  const s = (unitOrRoom || "").trim().toUpperCase()
+  if (!s) return "TJKT"
+
+  if (s.includes("YAYASAN") || s.includes("YYS")) return "YYS"
+  if (s.includes("KEUANGAN")) return "KEUANGAN"
+  if (s.includes("BISNIS") || s.includes("BC")) return "BC"
+  if (s.includes("PPDB")) return "PPDB"
+  if (s.includes("SERVER")) return "SERVER"
+  if (s.includes("GUDANG") || s.includes("INVENTARIS")) return "GUDANG"
+  if (s.includes("KEPSEK") || s.includes("KEPALA SEKOLAH")) return "KEPSEK"
+  if (s.includes("GURU")) return "GURU"
+  if (s.includes("TU")) return "TU"
+  if (s.includes("TJKT")) return "TJKT"
+  if (s.includes("DKV")) return "DKV"
+  if (s.includes("MPLB")) return "MPLB"
+  if (s.includes("AKL")) return "AKL"
+  if (s.includes("PM")) return "PM"
+  if (s.includes("SMP")) return "SMP"
+
+  // Custom room name: extract first clean uppercase word or acronym
+  const cleanWords = s.replace(/RUANG|LAB|RUANGAN/gi, "").trim().split(/\s+/)
+  if (cleanWords.length > 0 && cleanWords[0]) {
+    const firstWord = cleanWords[0].replace(/[^A-Z0-9]/gi, "").toUpperCase()
+    if (firstWord.length >= 2) return firstWord
+  }
+
+  return "UNIT"
+}
+
 export function generateNextCode(
-  jurusan: string,
+  unitOrRoom: string,
   kategoriPrefix: string = "PC",
   items: InventoryItem[]
 ): string {
-  const prefixJurusan = jurusan.toUpperCase()
+  const prefixUnit = derivePrefixFromRoomOrUnit(unitOrRoom)
   const prefixKat = (kategoriPrefix || "PC").toUpperCase()
 
-  const regex = new RegExp(`^${prefixJurusan}-${prefixKat}-(\\d+)-`, "i")
+  const regex = new RegExp(`^${prefixUnit}-${prefixKat}-(\\d+)-`, "i")
   let maxNum = 0
 
   items.forEach((item) => {
@@ -136,5 +166,5 @@ export function generateNextCode(
 
   const nextNum = String(maxNum + 1).padStart(3, "0")
   const yearSuffix = new Date().getFullYear().toString().slice(-2)
-  return `${prefixJurusan}-${prefixKat}-${nextNum}-${yearSuffix}`
+  return `${prefixUnit}-${prefixKat}-${nextNum}-${yearSuffix}`
 }

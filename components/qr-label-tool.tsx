@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import QRCode from "qrcode"
-import { Download, Printer, Search, QrCode, Check } from "lucide-react"
+import { Download, Printer, Search, QrCode, Check, Building2 } from "lucide-react"
 import { inventory as defaultRawInventory, getStoredInventory, JURUSAN, type InventoryItem } from "@/lib/inventory"
+import { getStoredRooms } from "@/lib/rooms"
 
 const LABELS = {
   compact4col: {
@@ -49,27 +50,38 @@ function assetUrl(kode: string) {
 
 export function QrLabelTool() {
   const [items, setItems] = useState<InventoryItem[]>(defaultRawInventory)
+  const [rooms, setRooms] = useState<string[]>([])
   const [query, setQuery] = useState("")
   const [jurusan, setJurusan] = useState("all")
+  const [ruangan, setRuangan] = useState("all")
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [size, setSize] = useState<LabelSize>("compact4col")
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
     setItems(getStoredInventory())
-    const handleUpdate = () => setItems(getStoredInventory())
+    setRooms(getStoredRooms())
+    const handleUpdate = () => {
+      setItems(getStoredInventory())
+      setRooms(getStoredRooms())
+    }
     window.addEventListener("inventory_updated", handleUpdate)
-    return () => window.removeEventListener("inventory_updated", handleUpdate)
+    window.addEventListener("rooms_updated", handleUpdate)
+    return () => {
+      window.removeEventListener("inventory_updated", handleUpdate)
+      window.removeEventListener("rooms_updated", handleUpdate)
+    }
   }, [])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return items.filter((i) => {
       if (jurusan !== "all" && i.jurusan !== jurusan) return false
+      if (ruangan !== "all" && (i.lokasi || "").toLowerCase() !== ruangan.toLowerCase()) return false
       if (!q) return true
-      return `${i.kode} ${i.namaPc}`.toLowerCase().includes(q)
+      return `${i.kode} ${i.namaPc} ${i.lokasi}`.toLowerCase().includes(q)
     })
-  }, [items, query, jurusan])
+  }, [items, query, jurusan, ruangan])
 
   function toggle(kode: string) {
     setSelected((prev) => {
@@ -266,7 +278,7 @@ export function QrLabelTool() {
               ) : (
                 <>
                   <Printer className="size-4" aria-hidden />
-                  Cetak PDF (4 Kolom Hemat)
+                  Cetak PDF ({selected.size} Label)
                 </>
               )}
             </button>
@@ -275,8 +287,8 @@ export function QrLabelTool() {
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap gap-2">
-          {[{ key: "all", label: "Semua" }, ...JURUSAN].map((f) => {
+        <div className="flex flex-wrap items-center gap-2">
+          {[{ key: "all", label: "Semua Unit" }, ...JURUSAN].map((f) => {
             const active = jurusan === f.key
             return (
               <button
@@ -294,7 +306,25 @@ export function QrLabelTool() {
               </button>
             )
           })}
+
+          {/* Filter berdasarkan Ruangan / Lokasi */}
+          <div className="relative inline-flex items-center">
+            <Building2 className="pointer-events-none absolute left-2.5 size-3.5 text-muted-foreground" />
+            <select
+              value={ruangan}
+              onChange={(e) => setRuangan(e.target.value)}
+              className="rounded-full border border-border bg-card py-1.5 pl-8 pr-3 text-xs font-semibold text-foreground outline-none focus:border-sky-500/50"
+            >
+              <option value="all">Semua Ruangan</option>
+              {rooms.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
+
         <div className="relative w-full sm:w-64">
           <Search
             className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
@@ -304,7 +334,7 @@ export function QrLabelTool() {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Cari kode atau nama..."
+            placeholder="Cari kode, nama, lokasi..."
             className="w-full rounded-lg border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-sky-500/50"
             aria-label="Cari unit"
           />
@@ -324,7 +354,7 @@ export function QrLabelTool() {
 
       {filtered.length === 0 && (
         <div className="rounded-xl border border-dashed border-border py-12 text-center text-muted-foreground">
-          Tidak ada unit yang cocok.
+          Tidak ada unit yang cocok dengan filter / ruangan ini.
         </div>
       )}
     </div>
@@ -373,7 +403,8 @@ function QrCard({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="truncate font-mono text-xs font-bold text-sky-300">{item.kode}</p>
-          <p className="truncate text-xs text-muted-foreground">{item.jurusan}</p>
+          <p className="truncate text-xs text-foreground font-medium">{item.namaPc || "Tanpa Nama"}</p>
+          <p className="truncate text-[11px] text-muted-foreground">{item.lokasi || item.jurusan}</p>
         </div>
         <button
           type="button"
