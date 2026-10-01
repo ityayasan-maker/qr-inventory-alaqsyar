@@ -1,14 +1,14 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { X, Save, PlusCircle, CheckCircle, RefreshCw } from "lucide-react"
+import { X, Save, PlusCircle, CheckCircle, RefreshCw, Laptop, Armchair } from "lucide-react"
 import {
-  JURUSAN,
-  KATEGORI_DEVICE,
   generateNextCode,
-  getCategoryFromItem,
+  getItemType,
   type InventoryItem,
+  type ItemType,
 } from "@/lib/inventory"
+import { getStoredCategories, getStoredUnits, type CategoryItem, type UnitItem } from "@/lib/master-data"
 import { getStoredRooms } from "@/lib/rooms"
 
 interface ItemFormModalProps {
@@ -19,7 +19,8 @@ interface ItemFormModalProps {
   existingItems: InventoryItem[]
 }
 
-const defaultForm: InventoryItem = {
+const defaultITForm: InventoryItem = {
+  type: "IT",
   jurusan: "TJKT",
   no: "",
   kode: "",
@@ -39,6 +40,23 @@ const defaultForm: InventoryItem = {
   catatan: "",
 }
 
+const defaultNonITForm: InventoryItem = {
+  type: "NON_IT",
+  jurusan: "HRGA",
+  no: "",
+  kode: "",
+  kategori: "MEJA",
+  namaPc: "",
+  merekModel: "",
+  bahanWarna: "",
+  tanggalPerolehan: "",
+  hargaPerolehan: "",
+  penanggungJawab: "",
+  kondisi: "Baik",
+  lokasi: "Ruang HR / GA",
+  catatan: "",
+}
+
 export function ItemFormModal({
   isOpen,
   onClose,
@@ -46,68 +64,103 @@ export function ItemFormModal({
   initialData,
   existingItems,
 }: ItemFormModalProps) {
-  const [formData, setFormData] = useState<InventoryItem>(defaultForm)
+  const [itemType, setItemType] = useState<ItemType>("IT")
+  const [formData, setFormData] = useState<InventoryItem>(defaultITForm)
   const [rooms, setRooms] = useState<string[]>([])
+  const [categories, setCategories] = useState<CategoryItem[]>([])
+  const [units, setUnits] = useState<UnitItem[]>([])
   const isEditing = Boolean(initialData)
 
   useEffect(() => {
-    setRooms(getStoredRooms())
+    if (isOpen) {
+      setRooms(getStoredRooms())
+      setCategories(getStoredCategories().filter((c) => c.active))
+      setUnits(getStoredUnits().filter((u) => u.active))
+    }
   }, [isOpen])
 
   useEffect(() => {
     if (initialData) {
-      const kat = getCategoryFromItem(initialData)
-      setFormData({ ...initialData, kategori: kat })
+      const detectedType = getItemType(initialData)
+      setItemType(detectedType)
+      setFormData({ ...initialData, type: detectedType })
     } else {
-      const initJurusan = "TJKT"
-      const initKat = "PC"
-      const initLokasi = "Lab TJKT"
-      const newCode = generateNextCode(initLokasi, initKat, existingItems)
+      const activeCats = getStoredCategories().filter((c) => c.active)
+      const activeUnits = getStoredUnits().filter((u) => u.active)
+      const activeRooms = getStoredRooms()
+
+      const defaultUnitCode = activeUnits[0]?.code || "TJKT"
+      const defaultRoom = activeRooms[0] || "Lab TJKT"
+      
+      const defaultType: ItemType = "IT"
+      setItemType(defaultType)
+      const defaultKatObj = activeCats.find((c) => c.type === defaultType) || activeCats[0]
+      const katCode = defaultKatObj ? defaultKatObj.code : "PC"
+
+      const newCode = generateNextCode(defaultRoom, katCode, existingItems, defaultType)
       setFormData({
-        ...defaultForm,
-        jurusan: initJurusan,
-        kategori: initKat,
+        ...defaultITForm,
+        type: defaultType,
+        jurusan: defaultUnitCode,
+        kategori: katCode,
         kode: newCode,
-        lokasi: initLokasi,
+        lokasi: defaultRoom,
       })
     }
   }, [initialData, isOpen, existingItems])
 
-  const recalculateCode = (targetLokasi: string, targetKatKey: string) => {
-    const katObj = KATEGORI_DEVICE.find((k) => k.key === targetKatKey)
-    const prefix = katObj ? katObj.prefix : "PC"
-    return generateNextCode(targetLokasi, prefix, existingItems)
+  const recalculateCode = (targetType: ItemType, targetLokasi: string, targetKatCode: string) => {
+    return generateNextCode(targetLokasi, targetKatCode, existingItems, targetType)
   }
 
-  const handleJurusanChange = (newJurusan: string) => {
+  const handleTypeChange = (newType: ItemType) => {
+    setItemType(newType)
     if (!isEditing) {
-      const newCode = recalculateCode(formData.lokasi || newJurusan, formData.kategori || "PC")
-      setFormData((prev) => ({
-        ...prev,
-        jurusan: newJurusan,
-        kode: newCode,
-      }))
+      const typeCats = categories.filter((c) => c.type === newType)
+      const firstKat = typeCats[0]?.code || (newType === "IT" ? "PC" : "MEJA")
+      const defaultLokasi = rooms[0] || (newType === "IT" ? "Lab TJKT" : "Ruang HR / GA")
+      const newCode = recalculateCode(newType, defaultLokasi, firstKat)
+
+      if (newType === "NON_IT") {
+        setFormData({
+          ...defaultNonITForm,
+          type: "NON_IT",
+          kategori: firstKat,
+          lokasi: defaultLokasi,
+          kode: newCode,
+          jurusan: units.find((u) => u.code === "HRGA")?.code || units[0]?.code || "HRGA",
+        })
+      } else {
+        setFormData({
+          ...defaultITForm,
+          type: "IT",
+          kategori: firstKat,
+          lokasi: defaultLokasi,
+          kode: newCode,
+          jurusan: units[0]?.code || "TJKT",
+        })
+      }
     } else {
-      setFormData((prev) => ({ ...prev, jurusan: newJurusan }))
+      setFormData((prev) => ({ ...prev, type: newType }))
     }
   }
 
-  const handleKategoriChange = (newKatKey: string) => {
+  const handleKategoriChange = (newKatCode: string) => {
     if (!isEditing) {
-      const newCode = recalculateCode(formData.lokasi, newKatKey)
+      const newCode = recalculateCode(itemType, formData.lokasi || "RUANG", newKatCode)
       setFormData((prev) => ({
         ...prev,
-        kategori: newKatKey,
+        kategori: newKatCode,
         kode: newCode,
       }))
     } else {
-      setFormData((prev) => ({ ...prev, kategori: newKatKey }))
+      setFormData((prev) => ({ ...prev, kategori: newKatCode }))
     }
   }
 
   const handleLokasiChange = (newLokasi: string) => {
     if (!isEditing) {
-      const newCode = recalculateCode(newLokasi, formData.kategori || "PC")
+      const newCode = recalculateCode(itemType, newLokasi, formData.kategori || "PC")
       setFormData((prev) => ({
         ...prev,
         lokasi: newLokasi,
@@ -126,9 +179,15 @@ export function ItemFormModal({
       alert("Kode Aset tidak boleh kosong")
       return
     }
-    onSave(formData)
+    if (!formData.namaPc.trim()) {
+      alert("Nama Barang / Device tidak boleh kosong")
+      return
+    }
+    onSave({ ...formData, type: itemType })
     onClose()
   }
+
+  const availableCategories = categories.filter((c) => c.type === itemType)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm animate-in fade-in duration-200">
@@ -141,12 +200,12 @@ export function ItemFormModal({
             </div>
             <div>
               <h2 className="text-lg font-semibold text-foreground">
-                {isEditing ? `Edit Barang: ${initialData?.kode}` : "Tambah Barang / Device Baru"}
+                {isEditing ? `Edit Barang: ${initialData?.kode}` : "Tambah Inventaris Barang"}
               </h2>
               <p className="text-xs text-muted-foreground">
                 {isEditing
-                  ? "Perbarui rincian spesifikasi atau kondisi barang"
-                  : "Kode aset tergenerasi otomatis secara cerdas sesuai ruangan & kategori yang dipilih"}
+                  ? "Perbarui rincian barang IT atau Non-IT"
+                  : "Pilih jenis barang, kategori, dan lokasi. Kode aset dibuat otomatis"}
               </p>
             </div>
           </div>
@@ -159,13 +218,41 @@ export function ItemFormModal({
           </button>
         </div>
 
-        {/* Modal Body / Form */}
+        {/* Modal Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Item Type Switcher Tabs */}
+          <div className="flex rounded-xl border border-border bg-muted/40 p-1">
+            <button
+              type="button"
+              onClick={() => handleTypeChange("IT")}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold transition-all ${
+                itemType === "IT"
+                  ? "bg-sky-500 text-white shadow-md"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Laptop className="size-4" />
+              <span>Barang IT</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleTypeChange("NON_IT")}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold transition-all ${
+                itemType === "NON_IT"
+                  ? "bg-amber-500 text-white shadow-md"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Armchair className="size-4" />
+              <span>Barang Non-IT (HR / GA)</span>
+            </button>
+          </div>
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {/* Lokasi Ruangan */}
             <div>
               <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                Lokasi Ruangan * (Mempengaruhi Prefix Kode Aset)
+                Lokasi Ruangan *
               </label>
               <select
                 value={formData.lokasi}
@@ -184,36 +271,36 @@ export function ItemFormModal({
               </select>
             </div>
 
-            {/* Kategori Device */}
+            {/* Kategori Barang */}
             <div>
               <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                Kategori Barang / Device *
+                Kategori Barang * ({itemType === "IT" ? "IT" : "Non-IT"})
               </label>
               <select
-                value={formData.kategori || "PC"}
+                value={formData.kategori || (itemType === "IT" ? "PC" : "MEJA")}
                 onChange={(e) => handleKategoriChange(e.target.value)}
                 className="w-full rounded-lg border border-sky-500/40 bg-sky-500/10 px-3 py-2 text-sm font-semibold text-sky-300 outline-none focus:border-sky-500"
                 required
               >
-                {KATEGORI_DEVICE.map((k) => (
-                  <option key={k.key} value={k.key} className="bg-card text-foreground">
-                    [{k.prefix}] {k.label}
+                {availableCategories.map((k) => (
+                  <option key={k.id} value={k.code} className="bg-card text-foreground">
+                    [{k.code}] {k.name}
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* Kode Aset Auto */}
+            {/* Kode Aset Auto / HR/GA Code */}
             <div className="sm:col-span-2">
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-xs font-semibold text-muted-foreground">
-                  Kode Aset Otomatis (Format: RUANGAN-KATEGORI-000-YY) *
+                  {itemType === "NON_IT" ? "Kode Inventaris HR / GA *" : "Kode Aset Otomatis IT *"}
                 </label>
                 {!isEditing && (
                   <button
                     type="button"
                     onClick={() => {
-                      const newCode = recalculateCode(formData.lokasi, formData.kategori || "PC")
+                      const newCode = recalculateCode(itemType, formData.lokasi, formData.kategori || "PC")
                       setFormData((prev) => ({ ...prev, kode: newCode }))
                     }}
                     className="inline-flex items-center gap-1 text-[11px] text-sky-400 hover:underline"
@@ -228,7 +315,7 @@ export function ItemFormModal({
                 value={formData.kode}
                 onChange={(e) => setFormData({ ...formData, kode: e.target.value })}
                 className="w-full font-mono text-sm font-extrabold rounded-lg border border-sky-500/50 bg-background px-3 py-2.5 text-sky-300 outline-none focus:border-sky-500"
-                placeholder="Contoh: SERVER-LAP-001-26"
+                placeholder={itemType === "NON_IT" ? "Contoh: GA-MJA-001-26 atau HR-INF-04" : "Contoh: TJKT-PC-001-26"}
                 required
               />
             </div>
@@ -240,29 +327,29 @@ export function ItemFormModal({
               </label>
               <select
                 value={formData.jurusan}
-                onChange={(e) => handleJurusanChange(e.target.value)}
+                onChange={(e) => setFormData({ ...formData, jurusan: e.target.value })}
                 className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-sky-500"
                 required
               >
-                {JURUSAN.map((j) => (
-                  <option key={j.key} value={j.key}>
-                    {j.label}
+                {units.map((u) => (
+                  <option key={u.id} value={u.code}>
+                    {u.name} ({u.code})
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* Nama Device / Merek */}
+            {/* Nama Barang */}
             <div>
               <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                Nama Device / Merek & Tipe *
+                Nama Barang / Device *
               </label>
               <input
                 type="text"
                 value={formData.namaPc}
                 onChange={(e) => setFormData({ ...formData, namaPc: e.target.value })}
                 className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-sky-500"
-                placeholder="Contoh: Laptop Asus Vivobook / Printer Epson L3210"
+                placeholder={itemType === "NON_IT" ? "Contoh: Meja Kerja Kayu Jati / AC Daikin 1.5 PK" : "Contoh: Laptop Asus Vivobook / PC Lab-01"}
                 required
               />
             </div>
@@ -270,7 +357,7 @@ export function ItemFormModal({
             {/* Kondisi */}
             <div>
               <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                Kondisi Unit *
+                Kondisi Barang *
               </label>
               <select
                 value={formData.kondisi}
@@ -279,97 +366,168 @@ export function ItemFormModal({
                 required
               >
                 <option value="Baik">Baik</option>
-                <option value="Bermasalah">Bermasalah</option>
-                <option value="Mati / Rusak">Mati / Rusak</option>
+                <option value="Rusak Ringan">Rusak Ringan / Bermasalah</option>
+                <option value="Rusak Berat">Rusak Berat / Mati</option>
               </select>
             </div>
 
-            {/* Spesifikasi tambahan / Prosesor */}
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                Prosesor / Spesifikasi Utama
-              </label>
-              <input
-                type="text"
-                value={formData.prosesor}
-                onChange={(e) => setFormData({ ...formData, prosesor: e.target.value })}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-sky-500"
-                placeholder="Contoh: Intel Core i5 / Dual Band Wi-Fi / 3000 Lumens"
-              />
-            </div>
+            {/* DYNAMIC FIELDS BASED ON TYPE */}
+            {itemType === "NON_IT" ? (
+              <>
+                {/* Merek / Model */}
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    Merek / Model
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.merekModel || ""}
+                    onChange={(e) => setFormData({ ...formData, merekModel: e.target.value })}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-sky-500"
+                    placeholder="Contoh: Daikin Inverter 1.5PK / Olympic / Lion"
+                  />
+                </div>
 
-            {/* RAM */}
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                RAM / Memori (Opsional)
-              </label>
-              <input
-                type="text"
-                value={formData.ram}
-                onChange={(e) => setFormData({ ...formData, ram: e.target.value })}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-sky-500"
-                placeholder="8 GB / -"
-              />
-            </div>
+                {/* Bahan / Warna */}
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    Bahan / Warna
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.bahanWarna || ""}
+                    onChange={(e) => setFormData({ ...formData, bahanWarna: e.target.value })}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-sky-500"
+                    placeholder="Contoh: Kayu Cokelat / Besi Hitam / Plastik Putih"
+                  />
+                </div>
 
-            {/* Storage */}
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                Penyimpanan / Storage (Opsional)
-              </label>
-              <input
-                type="text"
-                value={formData.storage}
-                onChange={(e) => setFormData({ ...formData, storage: e.target.value })}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-sky-500"
-                placeholder="512 GB SSD / -"
-              />
-            </div>
+                {/* Tanggal Perolehan */}
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    Tanggal Perolehan
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.tanggalPerolehan || ""}
+                    onChange={(e) => setFormData({ ...formData, tanggalPerolehan: e.target.value })}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-sky-500"
+                  />
+                </div>
 
-            {/* Monitor / Layar */}
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                Monitor / Ukuran Layar
-              </label>
-              <input
-                type="text"
-                value={formData.monitor}
-                onChange={(e) => setFormData({ ...formData, monitor: e.target.value })}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-sky-500"
-                placeholder="Layar 14 Inch / Samsung 19 Inch / -"
-              />
-            </div>
+                {/* Harga Perolehan */}
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    Harga Perolehan
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.hargaPerolehan || ""}
+                    onChange={(e) => setFormData({ ...formData, hargaPerolehan: e.target.value })}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-sky-500"
+                    placeholder="Contoh: Rp 2.500.000"
+                  />
+                </div>
 
-            {/* Sistem Operasi */}
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                Sistem Operasi / Firmware
-              </label>
-              <input
-                type="text"
-                value={formData.os}
-                onChange={(e) => setFormData({ ...formData, os: e.target.value })}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-sky-500"
-                placeholder="Windows 11 / RouterOS / -"
-              />
-            </div>
+                {/* Penanggung Jawab */}
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    Penanggung Jawab (PJ)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.penanggungJawab || ""}
+                    onChange={(e) => setFormData({ ...formData, penanggungJawab: e.target.value })}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-sky-500"
+                    placeholder="Contoh: Pak Budi (Koor GA) / Ibu Siti (Kepala Perpustakaan)"
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                {/* IT SPECS FIELDS */}
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    Prosesor / Spesifikasi Utama
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.prosesor}
+                    onChange={(e) => setFormData({ ...formData, prosesor: e.target.value })}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-sky-500"
+                    placeholder="Contoh: Intel Core i5 / Dual Band Wi-Fi / 3000 Lumens"
+                  />
+                </div>
 
-            {/* Motherboard / Serial */}
-            <div>
-              <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                Serial Number / Model No
-              </label>
-              <input
-                type="text"
-                value={formData.motherboard}
-                onChange={(e) => setFormData({ ...formData, motherboard: e.target.value })}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-sky-500"
-                placeholder="SN: 981249124 / Model: TL-WR840N"
-              />
-            </div>
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    RAM / Memori
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.ram}
+                    onChange={(e) => setFormData({ ...formData, ram: e.target.value })}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-sky-500"
+                    placeholder="8 GB / 16 GB / -"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    Penyimpanan / Storage
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.storage}
+                    onChange={(e) => setFormData({ ...formData, storage: e.target.value })}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-sky-500"
+                    placeholder="512 GB SSD / 1 TB HDD / -"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    Monitor / Ukuran Layar
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.monitor}
+                    onChange={(e) => setFormData({ ...formData, monitor: e.target.value })}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-sky-500"
+                    placeholder="Layar 14 Inch / Samsung 19 Inch / -"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    Sistem Operasi / Firmware
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.os}
+                    onChange={(e) => setFormData({ ...formData, os: e.target.value })}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-sky-500"
+                    placeholder="Windows 11 Pro / RouterOS / -"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    Serial Number / Model No
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.motherboard}
+                    onChange={(e) => setFormData({ ...formData, motherboard: e.target.value })}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-sky-500"
+                    placeholder="SN: 981249124 / Model: TL-WR840N"
+                  />
+                </div>
+              </>
+            )}
           </div>
 
-          {/* Catatan */}
+          {/* Catatan / Keterangan */}
           <div>
             <label className="block text-xs font-semibold text-muted-foreground mb-1">
               Catatan Keterangan
@@ -379,7 +537,7 @@ export function ItemFormModal({
               onChange={(e) => setFormData({ ...formData, catatan: e.target.value })}
               rows={2}
               className="w-full rounded-lg border border-border bg-background p-3 text-sm text-foreground outline-none focus:border-sky-500"
-              placeholder="Tambahkan catatan khusus kondisi, kelengkapan adaptor, garansi, dll..."
+              placeholder="Tambahkan catatan khusus kondisi, kelengkapan, garansi, dll..."
             />
           </div>
 

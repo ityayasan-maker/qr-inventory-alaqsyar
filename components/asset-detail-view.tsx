@@ -2,15 +2,16 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, RefreshCw } from "lucide-react"
+import { ArrowLeft, RefreshCw, Armchair, Laptop } from "lucide-react"
 import {
   getStoredInventory,
   getCategoryFromItem,
-  KATEGORI_DEVICE,
+  getItemType,
   kondisiStatus,
   kondisiMeta,
   type InventoryItem,
 } from "@/lib/inventory"
+import { getStoredCategories } from "@/lib/master-data"
 
 interface AssetDetailViewProps {
   initialItem: InventoryItem | null
@@ -70,60 +71,72 @@ export function AssetDetailView({ initialItem, kode }: AssetDetailViewProps) {
     )
   }
 
+  const itemType = getItemType(item)
   const status = kondisiStatus(item.kondisi)
   const meta = kondisiMeta[status]
   const katKey = getCategoryFromItem(item)
-  const katObj = KATEGORI_DEVICE.find((k) => k.key === katKey)
-  const katLabel = katObj ? katObj.label : katKey
 
-  // Dynamically tailor field labels based on Device Category
-  const isPc = katKey === "PC" || katKey === "CPU"
-  const isLaptop = katKey === "LAP"
-  const isPrinter = katKey === "PRN"
-  const isProjector = katKey === "PROJ"
-  const isRouter = katKey === "RTR"
-  const isMonitor = katKey === "MON"
+  const masterCategories = getStoredCategories()
+  const katObj = masterCategories.find((k) => k.code === katKey)
+  const katLabel = katObj ? katObj.name : katKey
 
   const rows: [string, string][] = []
 
-  // Name
-  if (isPc) rows.push(["Nama PC", item.namaPc])
-  else if (isLaptop) rows.push(["Nama Laptop / Merek", item.namaPc])
-  else if (isPrinter) rows.push(["Nama Printer", item.namaPc])
-  else if (isProjector) rows.push(["Nama Proyektor", item.namaPc])
-  else if (isRouter) rows.push(["Nama Perangkat Jaringan", item.namaPc])
-  else if (isMonitor) rows.push(["Merek & Ukuran Monitor", item.namaPc])
-  else rows.push(["Nama Barang / Merek", item.namaPc])
-
-  // Category & Unit
-  rows.push(["Kategori Device", katLabel])
-  rows.push(["Unit Pemilik", item.jurusan])
-  rows.push(["Lokasi Ruangan", item.lokasi])
-
-  // Specs / Processors
-  if (isPc || isLaptop) {
-    if (item.prosesor && item.prosesor !== "-") rows.push(["Prosesor", item.prosesor])
-    if (item.ram && item.ram !== "-") rows.push(["Kapasitas RAM", item.ram])
-    if (item.storage && item.storage !== "-") rows.push(["Penyimpanan", item.storage])
-    if (item.os && item.os !== "-") rows.push(["Sistem Operasi", item.os])
-    if (isPc && item.motherboard && item.motherboard !== "-") rows.push(["Motherboard", item.motherboard])
-    if (isPc && item.monitor && item.monitor !== "-") rows.push(["Monitor", item.monitor])
-    if (isPc && item.casing && item.casing !== "-") rows.push(["Merek Casing", item.casing])
-    if (isLaptop && item.monitor && item.monitor !== "-") rows.push(["Ukuran Layar", item.monitor])
-    if (isLaptop && item.motherboard && item.motherboard !== "-") rows.push(["Serial Number", item.motherboard])
+  if (itemType === "NON_IT") {
+    rows.push(["Nama Barang", item.namaPc])
+    rows.push(["Kode Inventaris HR/GA", item.kode])
+    rows.push(["Kategori Barang", katLabel])
+    rows.push(["Unit Pemilik", item.jurusan])
+    rows.push(["Lokasi Ruangan", item.lokasi])
+    if (item.merekModel && item.merekModel !== "-") rows.push(["Merek / Model", item.merekModel])
+    if (item.bahanWarna && item.bahanWarna !== "-") rows.push(["Bahan / Warna", item.bahanWarna])
+    if (item.tanggalPerolehan && item.tanggalPerolehan !== "-") rows.push(["Tanggal Perolehan", item.tanggalPerolehan])
+    if (item.hargaPerolehan && item.hargaPerolehan !== "-") rows.push(["Harga Perolehan", item.hargaPerolehan])
+    if (item.penanggungJawab && item.penanggungJawab !== "-") rows.push(["Penanggung Jawab", item.penanggungJawab])
   } else {
-    // Non-PC General Items (Printer, Router, Projector, Monitor, UPS, etc.)
-    if (item.prosesor && item.prosesor !== "-") {
-      rows.push([isProjector ? "Lumens / Resolusi" : isRouter ? "Chipset / Frekuensi" : "Spesifikasi", item.prosesor])
+    // IT Items
+    const isPc = katKey === "PC" || katKey === "CPU"
+    const isLaptop = katKey === "LAP"
+    const isPrinter = katKey === "PRN"
+    const isProjector = katKey === "PROJ"
+    const isRouter = katKey === "RTR"
+    const isMonitor = katKey === "MON"
+
+    if (isPc) rows.push(["Nama PC", item.namaPc])
+    else if (isLaptop) rows.push(["Nama Laptop / Merek", item.namaPc])
+    else if (isPrinter) rows.push(["Nama Printer", item.namaPc])
+    else if (isProjector) rows.push(["Nama Proyektor", item.namaPc])
+    else if (isRouter) rows.push(["Nama Perangkat Jaringan", item.namaPc])
+    else if (isMonitor) rows.push(["Merek & Ukuran Monitor", item.namaPc])
+    else rows.push(["Nama Barang / Merek", item.namaPc])
+
+    rows.push(["Kategori Device", katLabel])
+    rows.push(["Unit Pemilik", item.jurusan])
+    rows.push(["Lokasi Ruangan", item.lokasi])
+
+    if (isPc || isLaptop) {
+      if (item.prosesor && item.prosesor !== "-") rows.push(["Prosesor", item.prosesor])
+      if (item.ram && item.ram !== "-") rows.push(["Kapasitas RAM", item.ram])
+      if (item.storage && item.storage !== "-") rows.push(["Penyimpanan", item.storage])
+      if (item.os && item.os !== "-") rows.push(["Sistem Operasi", item.os])
+      if (isPc && item.motherboard && item.motherboard !== "-") rows.push(["Motherboard", item.motherboard])
+      if (isPc && item.monitor && item.monitor !== "-") rows.push(["Monitor", item.monitor])
+      if (isPc && item.casing && item.casing !== "-") rows.push(["Merek Casing", item.casing])
+      if (isLaptop && item.monitor && item.monitor !== "-") rows.push(["Ukuran Layar", item.monitor])
+      if (isLaptop && item.motherboard && item.motherboard !== "-") rows.push(["Serial Number", item.motherboard])
+    } else {
+      if (item.prosesor && item.prosesor !== "-") {
+        rows.push([isProjector ? "Lumens / Resolusi" : isRouter ? "Chipset / Frekuensi" : "Spesifikasi", item.prosesor])
+      }
+      if (item.os && item.os !== "-") rows.push(["Firmware / OS", item.os])
+      if (item.motherboard && item.motherboard !== "-") rows.push(["Serial Number / Model", item.motherboard])
+      if (item.ram && item.ram !== "-") rows.push(["RAM / Memori", item.ram])
+      if (item.storage && item.storage !== "-") rows.push(["Storage", item.storage])
     }
-    if (item.os && item.os !== "-") rows.push(["Firmware / OS", item.os])
-    if (item.motherboard && item.motherboard !== "-") rows.push(["Serial Number / Model", item.motherboard])
-    if (item.ram && item.ram !== "-") rows.push(["RAM / Memori", item.ram])
-    if (item.storage && item.storage !== "-") rows.push(["Storage", item.storage])
   }
 
   if (item.catatan && item.catatan !== "-") {
-    rows.push(["Catatan", item.catatan])
+    rows.push(["Catatan / Keterangan", item.catatan])
   }
 
   return (
@@ -144,9 +157,17 @@ export function AssetDetailView({ initialItem, kode }: AssetDetailViewProps) {
           </div>
         )}
 
-        <div className="flex items-center gap-2">
-          <span className="rounded-md border border-sky-500/40 bg-sky-500/10 px-2 py-0.5 font-mono text-xs font-bold text-sky-300">
-            [{katKey}] {katLabel}
+        <div className="flex items-center justify-between gap-2">
+          <span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 font-mono text-xs font-bold ${
+            itemType === "NON_IT"
+              ? "border-amber-500/40 bg-amber-500/10 text-amber-300"
+              : "border-sky-500/40 bg-sky-500/10 text-sky-300"
+          }`}>
+            {itemType === "NON_IT" ? <Armchair className="size-3.5" /> : <Laptop className="size-3.5" />}
+            <span>[{katKey}] {katLabel}</span>
+          </span>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            {itemType === "NON_IT" ? "Aset HR / GA" : "Aset IT"}
           </span>
         </div>
 

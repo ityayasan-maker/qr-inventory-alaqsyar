@@ -22,19 +22,24 @@ import {
   LogOut,
   ShieldCheck,
   UserCheck,
+  Tags,
+  Armchair,
+  Laptop,
+  User,
 } from "lucide-react"
 import {
   inventory as defaultRawInventory,
-  JURUSAN,
-  KATEGORI_DEVICE,
   getStats,
   kondisiStatus,
   kondisiMeta,
   getStoredInventory,
   saveStoredInventory,
   getCategoryFromItem,
+  getItemType,
   type InventoryItem,
+  type ItemType,
 } from "@/lib/inventory"
+import { getStoredCategories, getStoredUnits, type CategoryItem, type UnitItem } from "@/lib/master-data"
 import { getStoredSession, logoutAdmin, type UserSession } from "@/lib/auth"
 import { getStoredRooms } from "@/lib/rooms"
 import { StatCards } from "@/components/stat-cards"
@@ -43,18 +48,19 @@ import { DeleteConfirmModal } from "@/components/delete-confirm-modal"
 import { ImportModal } from "@/components/import-modal"
 import { LoginModal } from "@/components/login-modal"
 import { RoomModal } from "@/components/room-modal"
+import { MasterDataModal } from "@/components/master-data-modal"
 import { exportToExcel } from "@/lib/excel-utils"
-
-const FILTERS = [
-  { key: "all", label: "Semua Unit" },
-  ...JURUSAN.map((j) => ({ key: j.key, label: j.label })),
-] as const
 
 export function InventoryDashboard() {
   const [items, setItems] = useState<InventoryItem[]>(defaultRawInventory)
   const [session, setSession] = useState<UserSession | null>(null)
   const [rooms, setRooms] = useState<string[]>([])
-  const [jurusan, setJurusan] = useState<string>("all")
+  const [categories, setCategories] = useState<CategoryItem[]>([])
+  const [units, setUnits] = useState<UnitItem[]>([])
+
+  // Filters
+  const [itemTypeTab, setItemTypeTab] = useState<"all" | ItemType>("all")
+  const [unitFilter, setUnitFilter] = useState<string>("all")
   const [kategoriFilter, setKategoriFilter] = useState<string>("all")
   const [ruanganFilter, setRuanganFilter] = useState<string>("all")
   const [query, setQuery] = useState("")
@@ -64,28 +70,41 @@ export function InventoryDashboard() {
   const [isImportOpen, setIsImportOpen] = useState(false)
   const [isLoginOpen, setIsLoginOpen] = useState(false)
   const [isRoomOpen, setIsRoomOpen] = useState(false)
+  const [isMasterDataOpen, setIsMasterDataOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null)
   const [deletingItem, setDeletingItem] = useState<InventoryItem | null>(null)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
 
   // Sync state on mount & listen to window events
-  useEffect(() => {
+  const loadAllMaster = () => {
     setItems(getStoredInventory())
     setSession(getStoredSession())
     setRooms(getStoredRooms())
+    setCategories(getStoredCategories())
+    setUnits(getStoredUnits())
+  }
+
+  useEffect(() => {
+    loadAllMaster()
 
     const handleInvUpdate = () => setItems(getStoredInventory())
     const handleAuthChange = () => setSession(getStoredSession())
     const handleRoomUpdate = () => setRooms(getStoredRooms())
+    const handleMasterUpdate = () => {
+      setCategories(getStoredCategories())
+      setUnits(getStoredUnits())
+    }
 
     window.addEventListener("inventory_updated", handleInvUpdate)
     window.addEventListener("auth_state_changed", handleAuthChange)
     window.addEventListener("rooms_updated", handleRoomUpdate)
+    window.addEventListener("master_data_updated", handleMasterUpdate)
 
     return () => {
       window.removeEventListener("inventory_updated", handleInvUpdate)
       window.removeEventListener("auth_state_changed", handleAuthChange)
       window.removeEventListener("rooms_updated", handleRoomUpdate)
+      window.removeEventListener("master_data_updated", handleMasterUpdate)
     }
   }, [])
 
@@ -109,7 +128,9 @@ export function InventoryDashboard() {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return items.filter((i) => {
-      if (jurusan !== "all" && i.jurusan !== jurusan) return false
+      const typeOfItem = getItemType(i)
+      if (itemTypeTab !== "all" && typeOfItem !== itemTypeTab) return false
+      if (unitFilter !== "all" && i.jurusan !== unitFilter) return false
       if (kategoriFilter !== "all") {
         const itemKat = getCategoryFromItem(i)
         if (itemKat !== kategoriFilter) return false
@@ -118,12 +139,24 @@ export function InventoryDashboard() {
         if ((i.lokasi || "").toLowerCase() !== ruanganFilter.toLowerCase()) return false
       }
       if (!q) return true
-      return [i.kode, i.namaPc, i.prosesor, i.motherboard, i.os, i.monitor, i.casing, i.lokasi]
+      return [
+        i.kode,
+        i.namaPc,
+        i.prosesor,
+        i.motherboard,
+        i.os,
+        i.monitor,
+        i.merekModel,
+        i.bahanWarna,
+        i.penanggungJawab,
+        i.lokasi,
+        i.catatan,
+      ]
         .join(" ")
         .toLowerCase()
         .includes(q)
     })
-  }, [items, jurusan, kategoriFilter, ruanganFilter, query])
+  }, [items, itemTypeTab, unitFilter, kategoriFilter, ruanganFilter, query])
 
   const stats = useMemo(() => getStats(filtered), [filtered])
 
@@ -201,7 +234,7 @@ export function InventoryDashboard() {
   }
 
   const handleExportExcel = () => {
-    exportToExcel(filtered, `Inventaris-Barang-IT-Al-Aqsyar-${new Date().toISOString().slice(0, 10)}.xlsx`)
+    exportToExcel(filtered, `Inventaris-Barang-Al-Aqsyar-${new Date().toISOString().slice(0, 10)}.xlsx`)
     showToast(`Data ${filtered.length} barang berhasil diekspor ke Excel`)
   }
 
@@ -225,7 +258,7 @@ export function InventoryDashboard() {
         </div>
       )}
 
-      {/* Auth Status Banner & Stat Cards */}
+      {/* Auth Status Banner */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4">
           <div className="flex items-center gap-3">
@@ -238,8 +271,8 @@ export function InventoryDashboard() {
               </p>
               <p className="text-xs text-muted-foreground">
                 {session
-                  ? "Akses Administrator aktif. Anda dapat menambah, mengedit, mengimpor, dan mengelola ruangan."
-                  : "Anda dapat melihat data, mencari barang, & menguji scan QR. Login admin untuk mengelola."}
+                  ? "Akses Administrator aktif. Anda dapat mengelola Master Kategori & Unit, mengimpor, serta mengubah data."
+                  : "Anda dapat melihat data inventaris IT & Non-IT. Login admin untuk mengedit data & master."}
               </p>
             </div>
           </div>
@@ -273,27 +306,64 @@ export function InventoryDashboard() {
         <StatCards {...stats} />
       </div>
 
+      {/* ITEM TYPE TABS (Semua, Barang IT, Barang Non-IT) */}
+      <div className="flex items-center gap-2 rounded-2xl border border-border bg-card p-2">
+        <button
+          type="button"
+          onClick={() => setItemTypeTab("all")}
+          className={`flex-1 rounded-xl py-2.5 text-xs font-bold transition-all ${
+            itemTypeTab === "all"
+              ? "bg-sky-500 text-white shadow-md"
+              : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+          }`}
+        >
+          Semua Barang ({items.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setItemTypeTab("IT")}
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-bold transition-all ${
+            itemTypeTab === "IT"
+              ? "bg-sky-500 text-white shadow-md"
+              : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+          }`}
+        >
+          <Laptop className="size-4" />
+          <span>Barang IT ({items.filter((i) => getItemType(i) === "IT").length})</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setItemTypeTab("NON_IT")}
+          className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-bold transition-all ${
+            itemTypeTab === "NON_IT"
+              ? "bg-amber-500 text-white shadow-md"
+              : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+          }`}
+        >
+          <Armchair className="size-4" />
+          <span>Barang Non-IT / HR-GA ({items.filter((i) => getItemType(i) === "NON_IT").length})</span>
+        </button>
+      </div>
+
       {/* Toolbar: Filters, Search, CRUD Actions */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-2">
-          {FILTERS.map((f) => {
-            const active = jurusan === f.key
-            return (
-              <button
-                key={f.key}
-                type="button"
-                onClick={() => setJurusan(f.key)}
-                className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
-                  active
-                    ? "border-sky-500/50 bg-sky-500/15 text-sky-300"
-                    : "border-border bg-card text-muted-foreground hover:text-foreground"
-                }`}
-                aria-pressed={active}
-              >
-                {f.label}
-              </button>
-            )
-          })}
+          {/* Unit Dropdown Filter */}
+          <div className="relative inline-flex items-center">
+            <Building2 className="pointer-events-none absolute left-2.5 size-3.5 text-muted-foreground" />
+            <select
+              value={unitFilter}
+              onChange={(e) => setUnitFilter(e.target.value)}
+              className="rounded-full border border-border bg-card py-1.5 pl-8 pr-3 text-xs font-semibold text-foreground outline-none focus:border-sky-500/50"
+            >
+              <option value="all">Semua Unit / Jurusan</option>
+              {units.map((u) => (
+                <option key={u.id} value={u.code}>
+                  {u.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
           {/* Kategori Dropdown Filter */}
           <div className="relative inline-flex items-center">
@@ -303,10 +373,10 @@ export function InventoryDashboard() {
               onChange={(e) => setKategoriFilter(e.target.value)}
               className="rounded-full border border-border bg-card py-1.5 pl-8 pr-3 text-xs font-semibold text-foreground outline-none focus:border-sky-500/50"
             >
-              <option value="all">Semua Device</option>
-              {KATEGORI_DEVICE.map((k) => (
-                <option key={k.key} value={k.key}>
-                  [{k.prefix}] {k.label}
+              <option value="all">Semua Kategori</option>
+              {categories.map((k) => (
+                <option key={k.id} value={k.code}>
+                  [{k.code}] {k.name} ({k.type})
                 </option>
               ))}
             </select>
@@ -314,7 +384,7 @@ export function InventoryDashboard() {
 
           {/* Ruangan Dropdown Filter */}
           <div className="relative inline-flex items-center">
-            <Building2 className="pointer-events-none absolute left-2.5 size-3.5 text-muted-foreground" />
+            <MapPin className="pointer-events-none absolute left-2.5 size-3.5 text-muted-foreground" />
             <select
               value={ruanganFilter}
               onChange={(e) => setRuanganFilter(e.target.value)}
@@ -345,6 +415,16 @@ export function InventoryDashboard() {
               aria-label="Cari inventaris"
             />
           </div>
+
+          <button
+            type="button"
+            onClick={() => requireAdmin(() => setIsMasterDataOpen(true))}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-purple-500/30 bg-purple-500/10 px-3 py-2 text-xs font-semibold text-purple-300 transition-all hover:bg-purple-500/20"
+            title="Kelola Master Kategori & Master Unit"
+          >
+            <Tags className="size-3.5" />
+            <span>Master Data</span>
+          </button>
 
           <button
             type="button"
@@ -413,11 +493,12 @@ export function InventoryDashboard() {
           <table className="w-full border-collapse text-left text-sm">
             <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
-                <th className="px-4 py-3 font-medium">Kode Aset</th>
+                <th className="px-4 py-3 font-medium">Jenis</th>
+                <th className="px-4 py-3 font-medium">Kode Inventaris</th>
                 <th className="px-4 py-3 font-medium">Kategori</th>
                 <th className="px-4 py-3 font-medium">Unit</th>
                 <th className="px-4 py-3 font-medium">Nama Barang / Device</th>
-                <th className="px-4 py-3 font-medium">Spesifikasi</th>
+                <th className="px-4 py-3 font-medium">Merek / Spesifikasi</th>
                 <th className="px-4 py-3 font-medium">Lokasi Ruangan</th>
                 <th className="px-4 py-3 font-medium">Kondisi</th>
                 <th className="px-4 py-3 font-medium text-right">Aksi</th>
@@ -425,11 +506,23 @@ export function InventoryDashboard() {
             </thead>
             <tbody className="divide-y divide-border">
               {filtered.map((item) => {
+                const itemType = getItemType(item)
                 const status = kondisiStatus(item.kondisi)
                 const meta = kondisiMeta[status]
                 const katKey = getCategoryFromItem(item)
                 return (
                   <tr key={item.kode} className="transition-colors hover:bg-muted/30">
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-flex rounded px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase ${
+                          itemType === "NON_IT"
+                            ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                            : "bg-sky-500/20 text-sky-300 border border-sky-500/30"
+                        }`}
+                      >
+                        {itemType === "NON_IT" ? "NON-IT" : "IT"}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 font-mono text-xs text-sky-300">
                       <Link
                         href={`/a/${encodeURIComponent(item.kode)}`}
@@ -446,7 +539,9 @@ export function InventoryDashboard() {
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{item.jurusan}</td>
                     <td className="px-4 py-3 font-medium text-foreground">{item.namaPc || "-"}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{item.prosesor || "-"}</td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {itemType === "NON_IT" ? item.merekModel || item.bahanWarna || "-" : item.prosesor || "-"}
+                    </td>
                     <td className="px-4 py-3 text-muted-foreground">{item.lokasi || "-"}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium ${meta.className}`}>
@@ -508,6 +603,12 @@ export function InventoryDashboard() {
           Tidak ada barang yang cocok dengan pencarian / filter.
         </div>
       )}
+
+      {/* Master Data Management Modal */}
+      <MasterDataModal
+        isOpen={isMasterDataOpen}
+        onClose={() => setIsMasterDataOpen(false)}
+      />
 
       {/* Login Modal */}
       <LoginModal
@@ -571,6 +672,7 @@ function InventoryCard({
   onEdit: () => void
   onDelete: () => void
 }) {
+  const itemType = getItemType(item)
   const status = kondisiStatus(item.kondisi)
   const meta = kondisiMeta[status]
   const katKey = getCategoryFromItem(item)
@@ -580,6 +682,13 @@ function InventoryCard({
       <div className="flex items-start justify-between gap-2">
         <div>
           <div className="flex items-center gap-1.5">
+            <span
+              className={`rounded px-1.5 py-0.2 font-mono text-[10px] font-bold ${
+                itemType === "NON_IT" ? "bg-amber-500/20 text-amber-300" : "bg-sky-500/20 text-sky-300"
+              }`}
+            >
+              {itemType === "NON_IT" ? "NON-IT" : "IT"}
+            </span>
             <span className="rounded border border-sky-500/30 bg-sky-500/10 px-1.5 py-0.2 font-mono text-[10px] font-bold text-sky-300">
               {katKey}
             </span>
@@ -594,12 +703,23 @@ function InventoryCard({
           {meta.label}
         </span>
       </div>
+
       <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
-        <Spec icon={Cpu} label={item.prosesor} />
-        <Spec icon={MemoryStick} label={item.ram} />
-        <Spec icon={HardDrive} label={item.storage} />
+        {itemType === "NON_IT" ? (
+          <>
+            <Spec icon={Armchair} label={item.merekModel || item.bahanWarna || "-"} />
+            <Spec icon={User} label={item.penanggungJawab || "-"} />
+          </>
+        ) : (
+          <>
+            <Spec icon={Cpu} label={item.prosesor || "-"} />
+            <Spec icon={MemoryStick} label={item.ram || "-"} />
+            <Spec icon={HardDrive} label={item.storage || "-"} />
+          </>
+        )}
         <Spec icon={MapPin} label={`${item.jurusan} (${item.lokasi || "-"})`} />
       </dl>
+
       <div className="mt-4 flex items-center justify-end gap-2 border-t border-border pt-3">
         <button
           type="button"
