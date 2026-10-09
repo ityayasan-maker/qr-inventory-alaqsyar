@@ -30,8 +30,8 @@ const defaultITForm: InventoryItem = {
   ram: "-",
   storage: "-",
   os: "-",
-  keyboard: "-",
-  mouse: "-",
+  keyboard: "Standard USB",
+  mouse: "Standard USB",
   monitor: "-",
   casing: "-",
   kondisi: "Baik",
@@ -205,7 +205,7 @@ export function ItemFormModal({
               <p className="text-xs text-muted-foreground">
                 {isEditing
                   ? "Perbarui rincian barang IT atau Non-IT"
-                  : "Pilih jenis barang, kategori, dan lokasi. Kode aset dibuat otomatis"}
+                  : "Pilih jenis barang, kelengkapan spesifikasi & lokasi. Kode aset dibuat otomatis"}
               </p>
             </div>
           </div>
@@ -452,7 +452,7 @@ export function ItemFormModal({
                   </label>
                   <input
                     type="text"
-                    value={formData.prosesor}
+                    value={formData.prosesor || ""}
                     onChange={(e) => setFormData({ ...formData, prosesor: e.target.value })}
                     className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-sky-500"
                     placeholder="Contoh: Intel Core i5 / Dual Band Wi-Fi / 3000 Lumens"
@@ -465,7 +465,7 @@ export function ItemFormModal({
                   </label>
                   <input
                     type="text"
-                    value={formData.ram}
+                    value={formData.ram || ""}
                     onChange={(e) => setFormData({ ...formData, ram: e.target.value })}
                     className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-sky-500"
                     placeholder="8 GB / 16 GB / -"
@@ -478,7 +478,7 @@ export function ItemFormModal({
                   </label>
                   <input
                     type="text"
-                    value={formData.storage}
+                    value={formData.storage || ""}
                     onChange={(e) => setFormData({ ...formData, storage: e.target.value })}
                     className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-sky-500"
                     placeholder="512 GB SSD / 1 TB HDD / -"
@@ -491,10 +491,37 @@ export function ItemFormModal({
                   </label>
                   <input
                     type="text"
-                    value={formData.monitor}
+                    value={formData.monitor || ""}
                     onChange={(e) => setFormData({ ...formData, monitor: e.target.value })}
                     className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-sky-500"
                     placeholder="Layar 14 Inch / Samsung 19 Inch / -"
+                  />
+                </div>
+
+                {/* IT KELENGKAPAN: KEYBOARD & MOUSE */}
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    Kelengkapan Keyboard (Khusus IT) *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.keyboard || ""}
+                    onChange={(e) => setFormData({ ...formData, keyboard: e.target.value })}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-sky-500"
+                    placeholder="Contoh: Standard USB / Logitech K120 / Integrated"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                    Kelengkapan Mouse (Khusus IT) *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.mouse || ""}
+                    onChange={(e) => setFormData({ ...formData, mouse: e.target.value })}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-sky-500"
+                    placeholder="Contoh: Standard USB / Logitech B100 Wireless / Touchpad"
                   />
                 </div>
 
@@ -504,7 +531,7 @@ export function ItemFormModal({
                   </label>
                   <input
                     type="text"
-                    value={formData.os}
+                    value={formData.os || ""}
                     onChange={(e) => setFormData({ ...formData, os: e.target.value })}
                     className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-sky-500"
                     placeholder="Windows 11 Pro / RouterOS / -"
@@ -513,14 +540,14 @@ export function ItemFormModal({
 
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                    Serial Number / Model No
+                    Serial Number / Motherboard
                   </label>
                   <input
                     type="text"
-                    value={formData.motherboard}
+                    value={formData.motherboard || ""}
                     onChange={(e) => setFormData({ ...formData, motherboard: e.target.value })}
                     className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-sky-500"
-                    placeholder="SN: 981249124 / Model: TL-WR840N"
+                    placeholder="SN: 981249124 / Model: H61 Motherboard"
                   />
                 </div>
               </>

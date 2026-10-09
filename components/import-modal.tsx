@@ -1,9 +1,9 @@
 "use client"
 
 import React, { useState } from "react"
-import { Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle2, X } from "lucide-react"
-import { parseExcelFile, downloadTemplateExcel } from "@/lib/excel-utils"
-import type { InventoryItem } from "@/lib/inventory"
+import { Upload, Download, FileSpreadsheet, AlertCircle, CheckCircle2, X, Laptop, Armchair } from "lucide-react"
+import { parseExcelFile, downloadTemplateExcelIT, downloadTemplateExcelNonIT } from "@/lib/excel-utils"
+import type { InventoryItem, ItemType } from "@/lib/inventory"
 
 interface ImportModalProps {
   isOpen: boolean
@@ -18,6 +18,7 @@ export function ImportModal({
   onImportComplete,
   existingItems,
 }: ImportModalProps) {
+  const [importType, setImportType] = useState<ItemType>("IT")
   const [file, setFile] = useState<File | null>(null)
   const [parsedRows, setParsedRows] = useState<InventoryItem[]>([])
   const [strategy, setStrategy] = useState<"merge" | "append">("merge")
@@ -26,6 +27,13 @@ export function ImportModal({
 
   if (!isOpen) return null
 
+  const handleTypeSwitch = (type: ItemType) => {
+    setImportType(type)
+    setFile(null)
+    setParsedRows([])
+    setErrorMsg(null)
+  }
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0]
     if (!selectedFile) return
@@ -33,7 +41,7 @@ export function ImportModal({
     setErrorMsg(null)
     setBusy(true)
     try {
-      const rows = await parseExcelFile(selectedFile, existingItems)
+      const rows = await parseExcelFile(selectedFile, existingItems, importType)
       setParsedRows(rows)
     } catch (err: any) {
       console.error("Gagal membaca file Excel:", err)
@@ -68,7 +76,7 @@ export function ImportModal({
             </div>
             <div>
               <h2 className="text-lg font-semibold text-foreground">Impor Data Inventaris Excel</h2>
-              <p className="text-xs text-muted-foreground">Upload file .xlsx untuk memasukkan data komputer secara masal</p>
+              <p className="text-xs text-muted-foreground">Pilih kategori barang (IT / Non-IT) sebelum mengunggah file spreadsheet</p>
             </div>
           </div>
           <button
@@ -82,31 +90,68 @@ export function ImportModal({
 
         {/* Modal Body */}
         <div className="p-6 space-y-6">
+          {/* TAB PEMISAHAN KATEGORI IMPOR: IT vs NON-IT */}
+          <div>
+            <label className="block text-xs font-bold text-muted-foreground mb-1.5">
+              1. Pilih Kategori Barang yang Akan Diimpor:
+            </label>
+            <div className="flex rounded-xl border border-border bg-muted/40 p-1">
+              <button
+                type="button"
+                onClick={() => handleTypeSwitch("IT")}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold transition-all ${
+                  importType === "IT"
+                    ? "bg-sky-500 text-white shadow-md"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Laptop className="size-4" />
+                <span>Impor Barang IT (Komputer, Laptop, Printer, Router)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTypeSwitch("NON_IT")}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold transition-all ${
+                  importType === "NON_IT"
+                    ? "bg-amber-500 text-white shadow-md"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Armchair className="size-4" />
+                <span>Impor Barang Non-IT (Meja, Kursi, AC, Lemari GA)</span>
+              </button>
+            </div>
+          </div>
+
           {/* Download Template Bar */}
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-4">
             <div>
-              <p className="text-sm font-semibold text-emerald-300">Belum punya format Excel?</p>
-              <p className="text-xs text-emerald-400/80">Unduh template standar dengan header kolom yang sesuai</p>
+              <p className="text-sm font-semibold text-emerald-300">
+                Template Format Excel ({importType === "IT" ? "Barang IT" : "Barang Non-IT"})
+              </p>
+              <p className="text-xs text-emerald-400/80">
+                Unduh template resmi dengan struktur kolom {importType === "IT" ? "termasuk Keyboard & Mouse" : "spesifik HR / GA"}
+              </p>
             </div>
             <button
               type="button"
-              onClick={downloadTemplateExcel}
+              onClick={importType === "IT" ? downloadTemplateExcelIT : downloadTemplateExcelNonIT}
               className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white shadow-md hover:bg-emerald-500"
             >
               <Download className="size-4" />
-              <span>Unduh Template Excel</span>
+              <span>Unduh Template {importType === "IT" ? "IT" : "Non-IT"}</span>
             </button>
           </div>
 
           {/* Upload Dropzone */}
           <div>
             <label className="block text-xs font-semibold text-muted-foreground mb-2">
-              Pilih File Spreadsheet (.xlsx / .xls)
+              2. Pilih File Spreadsheet (.xlsx / .xls)
             </label>
             <div className="relative flex min-h-36 flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-background p-6 text-center transition-colors hover:border-emerald-500/50">
               <Upload className="size-8 text-emerald-400/70 mb-2" />
               <p className="text-sm font-medium text-foreground">
-                {file ? file.name : "Klik atau seret file Excel ke sini"}
+                {file ? file.name : `Klik atau seret file Excel ${importType === "IT" ? "Barang IT" : "Barang Non-IT"} ke sini`}
               </p>
               <p className="text-xs text-muted-foreground mt-1">Format didukung: .xlsx, .xls, .csv</p>
               <input
@@ -130,7 +175,7 @@ export function ImportModal({
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-foreground">
-                  Preview Import: <span className="text-emerald-400">{parsedRows.length} unit</span> terdeteksi
+                  Preview Import ({importType}): <span className="text-emerald-400">{parsedRows.length} unit</span> terdeteksi
                 </p>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <label htmlFor="strategySelect" className="font-semibold">Penanganan Duplikat Kode:</label>
@@ -152,10 +197,20 @@ export function ImportModal({
                     <tr>
                       <th className="px-3 py-2">Kode Aset</th>
                       <th className="px-3 py-2">Jurusan</th>
-                      <th className="px-3 py-2">Nama PC</th>
-                      <th className="px-3 py-2">Prosesor</th>
-                      <th className="px-3 py-2">RAM</th>
-                      <th className="px-3 py-2">Storage</th>
+                      <th className="px-3 py-2">Nama Barang</th>
+                      {importType === "IT" ? (
+                        <>
+                          <th className="px-3 py-2">Prosesor</th>
+                          <th className="px-3 py-2">Keyboard</th>
+                          <th className="px-3 py-2">Mouse</th>
+                        </>
+                      ) : (
+                        <>
+                          <th className="px-3 py-2">Merek / Model</th>
+                          <th className="px-3 py-2">Bahan / Warna</th>
+                          <th className="px-3 py-2">PJ</th>
+                        </>
+                      )}
                       <th className="px-3 py-2">Lokasi</th>
                     </tr>
                   </thead>
@@ -165,9 +220,19 @@ export function ImportModal({
                         <td className="px-3 py-2 font-mono font-bold text-sky-400">{row.kode}</td>
                         <td className="px-3 py-2 text-foreground">{row.jurusan}</td>
                         <td className="px-3 py-2 text-foreground">{row.namaPc || "-"}</td>
-                        <td className="px-3 py-2 text-muted-foreground">{row.prosesor || "-"}</td>
-                        <td className="px-3 py-2 text-muted-foreground">{row.ram || "-"}</td>
-                        <td className="px-3 py-2 text-muted-foreground">{row.storage || "-"}</td>
+                        {importType === "IT" ? (
+                          <>
+                            <td className="px-3 py-2 text-muted-foreground">{row.prosesor || "-"}</td>
+                            <td className="px-3 py-2 text-muted-foreground">{row.keyboard || "-"}</td>
+                            <td className="px-3 py-2 text-muted-foreground">{row.mouse || "-"}</td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="px-3 py-2 text-muted-foreground">{row.merekModel || "-"}</td>
+                            <td className="px-3 py-2 text-muted-foreground">{row.bahanWarna || "-"}</td>
+                            <td className="px-3 py-2 text-muted-foreground">{row.penanggungJawab || "-"}</td>
+                          </>
+                        )}
                         <td className="px-3 py-2 text-muted-foreground">{row.lokasi || "-"}</td>
                       </tr>
                     ))}
@@ -194,7 +259,7 @@ export function ImportModal({
             className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-600/25 transition-all hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <CheckCircle2 className="size-4" />
-            <span>Impor {parsedRows.length > 0 ? `${parsedRows.length} Data` : "Sekarang"}</span>
+            <span>Impor {parsedRows.length > 0 ? `${parsedRows.length} Data ${importType}` : "Sekarang"}</span>
           </button>
         </div>
       </div>

@@ -2,6 +2,14 @@ import raw from "./inventory.json"
 
 export type ItemType = "IT" | "NON_IT"
 
+export interface RepairLog {
+  id: string
+  tanggal: string
+  keterangan: string
+  teknisi?: string
+  biaya?: string
+}
+
 export type InventoryItem = {
   type?: ItemType
   jurusan: string
@@ -32,6 +40,9 @@ export type InventoryItem = {
   kondisi: string // "Baik" | "Rusak Ringan" | "Rusak Berat" / "Bermasalah" / "Mati"
   lokasi: string
   catatan?: string
+
+  // Repair History
+  repairLogs?: RepairLog[]
 }
 
 export const inventory: InventoryItem[] = raw as InventoryItem[]

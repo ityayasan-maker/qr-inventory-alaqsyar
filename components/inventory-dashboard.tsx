@@ -26,6 +26,8 @@ import {
   Armchair,
   Laptop,
   User,
+  Wrench,
+  ShieldAlert,
 } from "lucide-react"
 import {
   inventory as defaultRawInventory,
@@ -124,6 +126,17 @@ export function InventoryDashboard() {
     }
   }
 
+  const requireSuperAdmin = (actionCallback: () => void) => {
+    if (!session) {
+      setIsLoginOpen(true)
+      showToast("Aksi ini memerlukan hak akses Super Admin")
+    } else if (session.role !== "superadmin") {
+      showToast("Hanya Super Admin yang diizinkan melakukan aksi ini")
+    } else {
+      actionCallback()
+    }
+  }
+
   // Filtered items
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -143,6 +156,8 @@ export function InventoryDashboard() {
         i.kode,
         i.namaPc,
         i.prosesor,
+        i.keyboard,
+        i.mouse,
         i.motherboard,
         i.os,
         i.monitor,
@@ -239,7 +254,7 @@ export function InventoryDashboard() {
   }
 
   const handleResetData = () => {
-    requireAdmin(() => {
+    requireSuperAdmin(() => {
       if (confirm("Reset data ke versi default 205 unit awal? Perubahan lokal akan dikembalikan.")) {
         setItems(defaultRawInventory)
         saveStoredInventory(defaultRawInventory)
@@ -262,17 +277,36 @@ export function InventoryDashboard() {
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4">
           <div className="flex items-center gap-3">
-            <div className={`flex size-10 items-center justify-center rounded-xl ${session ? "bg-emerald-500/15 text-emerald-400" : "bg-sky-500/15 text-sky-400"}`}>
-              {session ? <UserCheck className="size-5" /> : <ShieldCheck className="size-5" />}
+            <div className={`flex size-10 items-center justify-center rounded-xl ${
+              session?.role === "superadmin"
+                ? "bg-purple-500/15 text-purple-400"
+                : session
+                ? "bg-emerald-500/15 text-emerald-400"
+                : "bg-sky-500/15 text-sky-400"
+            }`}>
+              {session?.role === "superadmin" ? <ShieldAlert className="size-5" /> : session ? <UserCheck className="size-5" /> : <ShieldCheck className="size-5" />}
             </div>
             <div>
-              <p className="text-sm font-semibold text-foreground">
-                {session ? session.name : "Pengunjung Sistem (Read Only)"}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold text-foreground">
+                  {session ? session.name : "Pengunjung Sistem (Read Only)"}
+                </p>
+                {session && (
+                  <span className={`rounded-full px-2 py-0.2 font-mono text-[10px] font-bold uppercase ${
+                    session.role === "superadmin"
+                      ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                      : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                  }`}>
+                    {session.role === "superadmin" ? "Super-Admin" : "Admin Staff"}
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground">
                 {session
-                  ? "Akses Administrator aktif. Anda dapat mengelola Master Kategori & Unit, mengimpor, serta mengubah data."
-                  : "Anda dapat melihat data inventaris IT & Non-IT. Login admin untuk mengedit data & master."}
+                  ? session.role === "superadmin"
+                    ? "Hak akses Super-Admin aktif. Anda memiliki wewenang penuh mengedit master, mengimpor, menghapus, & reset data."
+                    : "Hak akses Admin aktif. Anda dapat menginput barang, mencatat perbaikan, & mengimpor data."
+                  : "Anda dapat melihat data & memindai QR. Login admin/super-admin untuk mengelola data."}
               </p>
             </div>
           </div>
@@ -288,7 +322,7 @@ export function InventoryDashboard() {
                 className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3.5 py-2 text-xs font-semibold text-rose-300 hover:bg-rose-500/20"
               >
                 <LogOut className="size-3.5" />
-                <span>Keluar Admin</span>
+                <span>Keluar ({session.username})</span>
               </button>
             ) : (
               <button
@@ -418,9 +452,9 @@ export function InventoryDashboard() {
 
           <button
             type="button"
-            onClick={() => requireAdmin(() => setIsMasterDataOpen(true))}
+            onClick={() => requireSuperAdmin(() => setIsMasterDataOpen(true))}
             className="inline-flex items-center gap-1.5 rounded-lg border border-purple-500/30 bg-purple-500/10 px-3 py-2 text-xs font-semibold text-purple-300 transition-all hover:bg-purple-500/20"
-            title="Kelola Master Kategori & Master Unit"
+            title="Kelola Master Kategori & Master Unit (Super Admin)"
           >
             <Tags className="size-3.5" />
             <span>Master Data</span>
@@ -480,7 +514,7 @@ export function InventoryDashboard() {
           type="button"
           onClick={handleResetData}
           className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-rose-400"
-          title="Reset ke data default"
+          title="Reset ke data default (Super-Admin)"
         >
           <RefreshCw className="size-3.5" />
           <span>Reset Default</span>
@@ -499,6 +533,7 @@ export function InventoryDashboard() {
                 <th className="px-4 py-3 font-medium">Unit</th>
                 <th className="px-4 py-3 font-medium">Nama Barang / Device</th>
                 <th className="px-4 py-3 font-medium">Merek / Spesifikasi</th>
+                <th className="px-4 py-3 font-medium">Riwayat Perbaikan</th>
                 <th className="px-4 py-3 font-medium">Lokasi Ruangan</th>
                 <th className="px-4 py-3 font-medium">Kondisi</th>
                 <th className="px-4 py-3 font-medium text-right">Aksi</th>
@@ -510,6 +545,7 @@ export function InventoryDashboard() {
                 const status = kondisiStatus(item.kondisi)
                 const meta = kondisiMeta[status]
                 const katKey = getCategoryFromItem(item)
+                const repairCount = item.repairLogs ? item.repairLogs.length : 0
                 return (
                   <tr key={item.kode} className="transition-colors hover:bg-muted/30">
                     <td className="px-4 py-3">
@@ -542,6 +578,12 @@ export function InventoryDashboard() {
                     <td className="px-4 py-3 text-muted-foreground">
                       {itemType === "NON_IT" ? item.merekModel || item.bahanWarna || "-" : item.prosesor || "-"}
                     </td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center gap-1 font-mono text-xs text-amber-300 font-semibold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                        <Wrench className="size-3" />
+                        <span>{repairCount}x</span>
+                      </span>
+                    </td>
                     <td className="px-4 py-3 text-muted-foreground">{item.lokasi || "-"}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium ${meta.className}`}>
@@ -565,9 +607,9 @@ export function InventoryDashboard() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => requireAdmin(() => setDeletingItem(item))}
+                          onClick={() => requireSuperAdmin(() => setDeletingItem(item))}
                           className="rounded-md p-1.5 text-muted-foreground hover:bg-rose-500/15 hover:text-rose-400"
-                          title="Hapus Barang"
+                          title="Hapus Barang (Super Admin)"
                         >
                           <Trash2 className="size-4" />
                         </button>
@@ -593,7 +635,7 @@ export function InventoryDashboard() {
                 setIsFormOpen(true)
               })
             }
-            onDelete={() => requireAdmin(() => setDeletingItem(item))}
+            onDelete={() => requireSuperAdmin(() => setDeletingItem(item))}
           />
         ))}
       </div>
@@ -676,6 +718,7 @@ function InventoryCard({
   const status = kondisiStatus(item.kondisi)
   const meta = kondisiMeta[status]
   const katKey = getCategoryFromItem(item)
+  const repairCount = item.repairLogs ? item.repairLogs.length : 0
 
   return (
     <div className="rounded-xl border border-border bg-card p-4">
@@ -717,6 +760,7 @@ function InventoryCard({
             <Spec icon={HardDrive} label={item.storage || "-"} />
           </>
         )}
+        <Spec icon={Wrench} label={`Perbaikan: ${repairCount}x`} />
         <Spec icon={MapPin} label={`${item.jurusan} (${item.lokasi || "-"})`} />
       </dl>
 
