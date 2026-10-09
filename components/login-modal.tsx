@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
-import { LogIn, X, Eye, EyeOff, ShieldCheck, KeyRound, User } from "lucide-react"
+import { LogIn, X, Eye, EyeOff, KeyRound, User } from "lucide-react"
 import { loginAdmin, type UserSession } from "@/lib/auth"
 
 interface LoginModalProps {
@@ -11,8 +11,8 @@ interface LoginModalProps {
 }
 
 export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
-  const [username, setUsername] = useState("admin")
-  const [password, setPassword] = useState("admin")
+  const [username, setUsername] = useState("")
+  const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
@@ -67,7 +67,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground outline-none focus:border-sky-500"
-                placeholder="admin"
+                placeholder="Masukkan username"
                 required
               />
             </div>
@@ -92,14 +92,6 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
               >
                 {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-sky-500/20 bg-sky-950/30 p-3 text-xs text-sky-300 flex items-start gap-2">
-            <ShieldCheck className="size-4 text-sky-400 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold">Info Login Default System:</p>
-              <p className="text-[11px] text-sky-300/80">Username: <code className="font-mono font-bold text-sky-200">admin</code> | Password: <code className="font-mono font-bold text-sky-200">admin</code></p>
             </div>
           </div>
 

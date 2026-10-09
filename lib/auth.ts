@@ -11,7 +11,7 @@ const AUTH_KEY = "qr_inventory_auth_v1"
 
 export const DEFAULT_ADMIN = {
   username: "admin",
-  password: "admin",
+  password: "ITYAYASAN1999",
   name: "Super Admin Al-Aqsyar",
 }
 
@@ -32,7 +32,7 @@ export function loginAdmin(usernameInput: string, passwordInput: string): { succ
   const cleanUser = usernameInput.trim().toLowerCase()
   const cleanPass = passwordInput.trim()
 
-  if ((cleanUser === "admin" || cleanUser === "admin@alaqsyar.sch.id") && cleanPass === "admin") {
+  if ((cleanUser === "admin" || cleanUser === "admin@alaqsyar.sch.id") && cleanPass === "ITYAYASAN1999") {
     const session: UserSession = {
       username: "admin",
       name: "Super Admin Al-Aqsyar",
@@ -46,7 +46,7 @@ export function loginAdmin(usernameInput: string, passwordInput: string): { succ
     return { success: true, session }
   }
 
-  return { success: false, message: "Username atau password salah. (Default: admin / admin)" }
+  return { success: false, message: "Username atau password salah." }
 }
 
 export function logoutAdmin() {
