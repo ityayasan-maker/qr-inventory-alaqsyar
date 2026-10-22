@@ -89,6 +89,22 @@ export function InventoryDashboard() {
   useEffect(() => {
     loadAllMaster()
 
+    // Live sync from server API so items added on other devices appear automatically
+    fetch("/api/inventory")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((serverList: InventoryItem[] | null) => {
+        if (Array.isArray(serverList) && serverList.length > 0) {
+          const localList = getStoredInventory()
+          const map = new Map<string, InventoryItem>()
+          localList.forEach((item) => map.set(item.kode, item))
+          serverList.forEach((item) => map.set(item.kode, item))
+          const merged = Array.from(map.values())
+          setItems(merged)
+          saveStoredInventory(merged)
+        }
+      })
+      .catch(() => {})
+
     const handleInvUpdate = () => setItems(getStoredInventory())
     const handleAuthChange = () => setSession(getStoredSession())
     const handleRoomUpdate = () => setRooms(getStoredRooms())

@@ -79,6 +79,7 @@ export const KATEGORI_DEVICE = [
   { key: "KEY", label: "Keyboard", prefix: "KEY", type: "IT" },
   { key: "MOU", label: "Mouse", prefix: "MOU", type: "IT" },
   { key: "PRN", label: "Printer", prefix: "PRN", type: "IT" },
+  { key: "SCN", label: "Scanner", prefix: "SCN", type: "IT" },
   { key: "PROJ", label: "Proyektor / LCD", prefix: "PROJ", type: "IT" },
   { key: "UPS", label: "UPS / Stabilizer", prefix: "UPS", type: "IT" },
   { key: "RTR", label: "Router / Perangkat Jaringan", prefix: "RTR", type: "IT" },
@@ -120,16 +121,19 @@ export function getStats(items: InventoryItem[]) {
   return { total, baik, bermasalah, mati }
 }
 
-const LOCAL_STORAGE_KEY = "qr_inventory_items_v2"
+const LOCAL_STORAGE_KEY = "qr_inventory_items_v3"
 
 export function getStoredInventory(): InventoryItem[] {
   if (typeof window === "undefined") return inventory
   try {
     const stored = localStorage.getItem(LOCAL_STORAGE_KEY)
     if (stored) {
-      const parsed = JSON.parse(stored)
+      const parsed: InventoryItem[] = JSON.parse(stored)
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed
+        const map = new Map<string, InventoryItem>()
+        inventory.forEach((item) => map.set(item.kode, item))
+        parsed.forEach((item) => map.set(item.kode, item))
+        return Array.from(map.values())
       }
     }
   } catch (e) {

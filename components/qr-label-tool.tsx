@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import QRCode from "qrcode"
 import { Download, Printer, Search, QrCode, Check, Building2 } from "lucide-react"
-import { inventory as defaultRawInventory, getStoredInventory, JURUSAN, type InventoryItem } from "@/lib/inventory"
+import { inventory as defaultRawInventory, getStoredInventory, saveStoredInventory, JURUSAN, type InventoryItem } from "@/lib/inventory"
 import { getStoredRooms } from "@/lib/rooms"
 
 const LABELS = {
@@ -61,6 +61,22 @@ export function QrLabelTool() {
   useEffect(() => {
     setItems(getStoredInventory())
     setRooms(getStoredRooms())
+
+    fetch("/api/inventory")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((serverList: InventoryItem[] | null) => {
+        if (Array.isArray(serverList) && serverList.length > 0) {
+          const localList = getStoredInventory()
+          const map = new Map<string, InventoryItem>()
+          localList.forEach((item) => map.set(item.kode, item))
+          serverList.forEach((item) => map.set(item.kode, item))
+          const merged = Array.from(map.values())
+          setItems(merged)
+          saveStoredInventory(merged)
+        }
+      })
+      .catch(() => {})
+
     const handleUpdate = () => {
       setItems(getStoredInventory())
       setRooms(getStoredRooms())

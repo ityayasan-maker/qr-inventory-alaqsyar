@@ -3560,7 +3560,7 @@
     "casing": "-",
     "kondisi": "Baik",
     "motherboard": "Gigabyte H110M-DS2-CF",
-    "lokasi": "Ruang Server",
+    "lokasi": "Kantor Yayasan",
     "catatan": ""
   },
   {
@@ -3578,7 +3578,7 @@
     "casing": "-",
     "kondisi": "Baik",
     "motherboard": "Gigabyte H61M-DS2",
-    "lokasi": "Ruang TU Yayasan",
+    "lokasi": "Kantor Yayasan",
     "catatan": ""
   },
   {
@@ -3596,7 +3596,7 @@
     "casing": "-",
     "kondisi": "Baik",
     "motherboard": "Gigabyte H81M-DS2",
-    "lokasi": "Ruang TU Yayasan",
+    "lokasi": "Kantor Yayasan",
     "catatan": ""
   },
   {
@@ -3614,7 +3614,7 @@
     "casing": "-",
     "kondisi": "Baik",
     "motherboard": "Intel",
-    "lokasi": "Ruang Inventaris",
+    "lokasi": "Kantor Yayasan",
     "catatan": ""
   },
   {
@@ -3686,6 +3686,63 @@
     "casing": "-",
     "kondisi": "Baik",
     "motherboard": "Lenovo LNVNB161216",
+    "lokasi": "Kantor Yayasan",
+    "catatan": ""
+  },
+  {
+    "jurusan": "Yayasan",
+    "no": "12",
+    "kode": "YYS-SCN-001-26",
+    "kategori": "SCN",
+    "namaPc": "Epson DS-410",
+    "prosesor": "Scanner Dokumen Sheet-fed",
+    "ram": "-",
+    "storage": "-",
+    "os": "-",
+    "keyboard": "-",
+    "mouse": "-",
+    "monitor": "-",
+    "casing": "-",
+    "kondisi": "Baik",
+    "motherboard": "Epson WorkForce DS-410",
+    "lokasi": "Kantor Yayasan",
+    "catatan": ""
+  },
+  {
+    "jurusan": "Yayasan",
+    "no": "13",
+    "kode": "YYS-PRN-001-26",
+    "kategori": "PRN",
+    "namaPc": "PRINTER Epson (L121)",
+    "prosesor": "InkTank Printer",
+    "ram": "-",
+    "storage": "-",
+    "os": "-",
+    "keyboard": "-",
+    "mouse": "-",
+    "monitor": "-",
+    "casing": "-",
+    "kondisi": "Baik",
+    "motherboard": "Epson EcoTank L121",
+    "lokasi": "Kantor Yayasan",
+    "catatan": ""
+  },
+  {
+    "jurusan": "Yayasan",
+    "no": "14",
+    "kode": "YYS-MON-001-26",
+    "kategori": "MON",
+    "namaPc": "SPC",
+    "prosesor": "Monitor LED",
+    "ram": "-",
+    "storage": "-",
+    "os": "-",
+    "keyboard": "-",
+    "mouse": "-",
+    "monitor": "SPC 19 INCH",
+    "casing": "-",
+    "kondisi": "Baik",
+    "motherboard": "SPC Monitor",
     "lokasi": "Kantor Yayasan",
     "catatan": ""
   }
