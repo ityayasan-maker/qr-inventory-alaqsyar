@@ -244,36 +244,37 @@ export function QrLabelTool() {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-border bg-card p-4">
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-medium text-foreground">
-              {selected.size} unit dipilih
+      <div className="rounded-2xl border border-purple-100 bg-white p-5 shadow-xs">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <span className="text-sm font-bold text-slate-800">
+              <span className="text-purple-700">{selected.size}</span> unit dipilih untuk cetak
             </span>
-            <div className="flex-1" />
-            <button
-              type="button"
-              onClick={selectAllFiltered}
-              className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
-            >
-              Pilih semua ({filtered.length})
-            </button>
-            <button
-              type="button"
-              onClick={clearSelection}
-              className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
-            >
-              Kosongkan
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={selectAllFiltered}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                Pilih semua ({filtered.length})
+              </button>
+              <button
+                type="button"
+                onClick={clearSelection}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition-colors"
+              >
+                Kosongkan
+              </button>
+            </div>
           </div>
 
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <label className="flex items-center gap-2 text-sm text-muted-foreground">
-              Ukuran & Layout Label
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center justify-between">
+            <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-600">
+              Ukuran &amp; Format Stiker:
               <select
                 value={size}
                 onChange={(e) => setSize(e.target.value as LabelSize)}
-                className="rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground outline-none focus:border-sky-500/50"
+                className="rounded-lg border border-purple-200 bg-purple-50/50 px-3 py-2 text-xs sm:text-sm font-semibold text-purple-900 outline-none focus:border-purple-500"
               >
                 {Object.entries(LABELS).map(([k, v]) => (
                   <option key={k} value={k}>
@@ -282,12 +283,11 @@ export function QrLabelTool() {
                 ))}
               </select>
             </label>
-            <div className="flex-1" />
             <button
               type="button"
               onClick={generatePdf}
               disabled={selected.size === 0 || busy}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-sky-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-purple-600 px-5 py-2.5 text-xs sm:text-sm font-bold text-white shadow-xs transition-colors hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {busy ? (
                 "Membuat PDF..."
@@ -311,10 +311,10 @@ export function QrLabelTool() {
                 key={f.key}
                 type="button"
                 onClick={() => setJurusan(f.key)}
-                className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all ${
                   active
-                    ? "border-sky-500/50 bg-sky-500/15 text-sky-300"
-                    : "border-border bg-card text-muted-foreground hover:text-foreground"
+                    ? "border-purple-600 bg-purple-600 text-white shadow-2xs"
+                    : "border-slate-200 bg-white text-slate-600 hover:text-slate-900 hover:border-slate-300"
                 }`}
                 aria-pressed={active}
               >
@@ -325,11 +325,11 @@ export function QrLabelTool() {
 
           {/* Filter berdasarkan Ruangan / Lokasi */}
           <div className="relative inline-flex items-center">
-            <Building2 className="pointer-events-none absolute left-2.5 size-3.5 text-muted-foreground" />
+            <Building2 className="pointer-events-none absolute left-2.5 size-3.5 text-slate-400" />
             <select
               value={ruangan}
               onChange={(e) => setRuangan(e.target.value)}
-              className="rounded-full border border-border bg-card py-1.5 pl-8 pr-3 text-xs font-semibold text-foreground outline-none focus:border-sky-500/50"
+              className="rounded-full border border-slate-200 bg-white py-1.5 pl-8 pr-3 text-xs font-semibold text-slate-700 outline-none focus:border-purple-500"
             >
               <option value="all">Semua Ruangan</option>
               {rooms.map((r) => (
@@ -343,7 +343,7 @@ export function QrLabelTool() {
 
         <div className="relative w-full sm:w-64">
           <Search
-            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400"
             aria-hidden
           />
           <input
@@ -351,7 +351,7 @@ export function QrLabelTool() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Cari kode, nama, lokasi..."
-            className="w-full rounded-lg border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-sky-500/50"
+            className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-xs sm:text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-purple-500 shadow-2xs"
             aria-label="Cari unit"
           />
         </div>
@@ -369,7 +369,7 @@ export function QrLabelTool() {
       </div>
 
       {filtered.length === 0 && (
-        <div className="rounded-xl border border-dashed border-border py-12 text-center text-muted-foreground">
+        <div className="rounded-2xl border border-dashed border-slate-200 py-12 text-center text-slate-400 bg-white">
           Tidak ada unit yang cocok dengan filter / ruangan ini.
         </div>
       )}
@@ -412,51 +412,51 @@ function QrCard({
 
   return (
     <div
-      className={`rounded-xl border bg-card p-3 transition-colors ${
-        checked ? "border-sky-500/60 ring-1 ring-sky-500/30" : "border-border"
+      className={`rounded-2xl border bg-white p-3.5 transition-all shadow-2xs ${
+        checked ? "border-purple-500 ring-2 ring-purple-500/20 shadow-xs" : "border-slate-200 hover:border-slate-300"
       }`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="truncate font-mono text-xs font-bold text-sky-300">{item.kode}</p>
-          <p className="truncate text-xs text-foreground font-medium">{item.namaPc || "Tanpa Nama"}</p>
-          <p className="truncate text-[11px] text-muted-foreground">{item.lokasi || item.jurusan}</p>
+          <p className="truncate font-mono text-xs font-bold text-purple-700">{item.kode}</p>
+          <p className="truncate text-xs font-bold text-slate-800">{item.namaPc || "Tanpa Nama"}</p>
+          <p className="truncate text-[11px] text-slate-500">{item.lokasi || item.jurusan}</p>
         </div>
         <button
           type="button"
           onClick={onToggle}
           aria-pressed={checked}
           aria-label={checked ? "Batal pilih" : "Pilih unit"}
-          className={`flex size-6 shrink-0 items-center justify-center rounded-md border transition-colors ${
+          className={`flex size-6 shrink-0 items-center justify-center rounded-lg border transition-colors ${
             checked
-              ? "border-sky-500 bg-sky-500 text-white"
-              : "border-border bg-card text-transparent"
+              ? "border-purple-600 bg-purple-600 text-white"
+              : "border-slate-200 bg-slate-50 text-transparent hover:border-slate-300"
           }`}
         >
           <Check className="size-4" aria-hidden />
         </button>
       </div>
 
-      <div className="mt-2 flex justify-center rounded-lg bg-white p-2">
+      <div className="mt-2.5 flex justify-center rounded-xl bg-slate-50 border border-slate-100 p-2">
         <canvas ref={canvasRef} aria-label={`QR untuk ${item.kode}`} />
       </div>
 
-      <div className="mt-2 flex gap-1.5">
+      <div className="mt-3 flex gap-2">
         <a
           href={`/a/${encodeURIComponent(item.kode)}`}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex flex-1 items-center justify-center gap-1 rounded-md border border-border bg-card py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+          className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-2xs"
         >
-          <QrCode className="size-3" aria-hidden />
-          Scan
+          <QrCode className="size-3.5 text-purple-600" />
+          Lihat
         </a>
         <button
           type="button"
           onClick={downloadPng}
-          className="inline-flex flex-1 items-center justify-center gap-1 rounded-md border border-border bg-card py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+          className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-purple-200 bg-purple-50 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-100 shadow-2xs"
         >
-          <Download className="size-3" aria-hidden />
+          <Download className="size-3.5" />
           PNG
         </button>
       </div>

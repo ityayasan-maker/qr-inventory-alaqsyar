@@ -283,22 +283,22 @@ export function InventoryDashboard() {
     <div className="space-y-6">
       {/* Toast Alert */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-950/90 px-4 py-3 text-sm font-semibold text-emerald-300 shadow-2xl backdrop-blur-md animate-in slide-in-from-bottom-5">
-          <CheckCircle2 className="size-5 shrink-0 text-emerald-400" />
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-xl backdrop-blur-md animate-in slide-in-from-bottom-5">
+          <CheckCircle2 className="size-5 shrink-0 text-white" />
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* Auth Status Banner */}
       <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm">
           <div className="flex items-center gap-3">
             <div className={`flex size-10 items-center justify-center rounded-xl ${
               session?.role === "superadmin"
-                ? "bg-purple-500/15 text-purple-400"
+                ? "bg-purple-100 text-purple-700 border border-purple-200"
                 : session
-                ? "bg-emerald-500/15 text-emerald-400"
-                : "bg-sky-500/15 text-sky-400"
+                ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                : "bg-violet-100 text-violet-700 border border-violet-200"
             }`}>
               {session?.role === "superadmin" ? <ShieldAlert className="size-5" /> : session ? <UserCheck className="size-5" /> : <ShieldCheck className="size-5" />}
             </div>
@@ -308,10 +308,10 @@ export function InventoryDashboard() {
                   {session ? session.name : "Pengunjung Sistem (Read Only)"}
                 </p>
                 {session && (
-                  <span className={`rounded-full px-2 py-0.2 font-mono text-[10px] font-bold uppercase ${
+                  <span className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase ${
                     session.role === "superadmin"
-                      ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
-                      : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                      ? "bg-purple-100 text-purple-700 border border-purple-300"
+                      : "bg-emerald-100 text-emerald-700 border border-emerald-300"
                   }`}>
                     {session.role === "superadmin" ? "Super-Admin" : "Admin Staff"}
                   </span>
@@ -335,7 +335,7 @@ export function InventoryDashboard() {
                   logoutAdmin()
                   showToast("Anda telah keluar dari sesi Admin")
                 }}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3.5 py-2 text-xs font-semibold text-rose-300 hover:bg-rose-500/20"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition-colors"
               >
                 <LogOut className="size-3.5" />
                 <span>Keluar ({session.username})</span>
@@ -344,7 +344,7 @@ export function InventoryDashboard() {
               <button
                 type="button"
                 onClick={() => setIsLoginOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-sky-500 px-4 py-2 text-xs font-semibold text-white shadow-md hover:bg-sky-400"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-violet-700 transition-colors"
               >
                 <LogIn className="size-3.5" />
                 <span>Login Admin</span>
@@ -357,14 +357,14 @@ export function InventoryDashboard() {
       </div>
 
       {/* ITEM TYPE TABS (Semua, Barang IT, Barang Non-IT) */}
-      <div className="flex items-center gap-2 rounded-2xl border border-border bg-card p-2">
+      <div className="flex items-center gap-2 rounded-2xl border border-border bg-card p-2 shadow-sm">
         <button
           type="button"
           onClick={() => setItemTypeTab("all")}
           className={`flex-1 rounded-xl py-2.5 text-xs font-bold transition-all ${
             itemTypeTab === "all"
-              ? "bg-sky-500 text-white shadow-md"
-              : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+              ? "bg-violet-600 text-white shadow-sm"
+              : "text-slate-600 hover:bg-slate-100 hover:text-foreground"
           }`}
         >
           Semua Barang ({items.length})
@@ -374,8 +374,8 @@ export function InventoryDashboard() {
           onClick={() => setItemTypeTab("IT")}
           className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-bold transition-all ${
             itemTypeTab === "IT"
-              ? "bg-sky-500 text-white shadow-md"
-              : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+              ? "bg-violet-600 text-white shadow-sm"
+              : "text-slate-600 hover:bg-slate-100 hover:text-foreground"
           }`}
         >
           <Laptop className="size-4" />
@@ -386,8 +386,8 @@ export function InventoryDashboard() {
           onClick={() => setItemTypeTab("NON_IT")}
           className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-bold transition-all ${
             itemTypeTab === "NON_IT"
-              ? "bg-amber-500 text-white shadow-md"
-              : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+              ? "bg-amber-600 text-white shadow-sm"
+              : "text-slate-600 hover:bg-slate-100 hover:text-foreground"
           }`}
         >
           <Armchair className="size-4" />
@@ -404,7 +404,7 @@ export function InventoryDashboard() {
             <select
               value={unitFilter}
               onChange={(e) => setUnitFilter(e.target.value)}
-              className="rounded-full border border-border bg-card py-1.5 pl-8 pr-3 text-xs font-semibold text-foreground outline-none focus:border-sky-500/50"
+              className="rounded-full border border-border bg-card py-1.5 pl-8 pr-3 text-xs font-semibold text-foreground outline-none focus:border-violet-500 shadow-sm"
             >
               <option value="all">Semua Unit / Jurusan</option>
               {units.map((u) => (
@@ -421,7 +421,7 @@ export function InventoryDashboard() {
             <select
               value={kategoriFilter}
               onChange={(e) => setKategoriFilter(e.target.value)}
-              className="rounded-full border border-border bg-card py-1.5 pl-8 pr-3 text-xs font-semibold text-foreground outline-none focus:border-sky-500/50"
+              className="rounded-full border border-border bg-card py-1.5 pl-8 pr-3 text-xs font-semibold text-foreground outline-none focus:border-violet-500 shadow-sm"
             >
               <option value="all">Semua Kategori</option>
               {categories.map((k) => (
@@ -438,7 +438,7 @@ export function InventoryDashboard() {
             <select
               value={ruanganFilter}
               onChange={(e) => setRuanganFilter(e.target.value)}
-              className="rounded-full border border-border bg-card py-1.5 pl-8 pr-3 text-xs font-semibold text-foreground outline-none focus:border-sky-500/50"
+              className="rounded-full border border-border bg-card py-1.5 pl-8 pr-3 text-xs font-semibold text-foreground outline-none focus:border-violet-500 shadow-sm"
             >
               <option value="all">Semua Ruangan</option>
               {rooms.map((r) => (
@@ -461,7 +461,7 @@ export function InventoryDashboard() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Cari kode, barang, spesifikasi..."
-              className="w-full rounded-lg border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-sky-500/50"
+              className="w-full rounded-lg border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-violet-500 shadow-sm"
               aria-label="Cari inventaris"
             />
           </div>
@@ -469,7 +469,7 @@ export function InventoryDashboard() {
           <button
             type="button"
             onClick={() => requireSuperAdmin(() => setIsMasterDataOpen(true))}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-purple-500/30 bg-purple-500/10 px-3 py-2 text-xs font-semibold text-purple-300 transition-all hover:bg-purple-500/20"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-3 py-2 text-xs font-semibold text-purple-700 transition-all hover:bg-purple-100 shadow-sm"
             title="Kelola Master Kategori & Master Unit (Super Admin)"
           >
             <Tags className="size-3.5" />
@@ -479,7 +479,7 @@ export function InventoryDashboard() {
           <button
             type="button"
             onClick={() => requireAdmin(() => setIsRoomOpen(true))}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-purple-500/30 bg-purple-500/10 px-3 py-2 text-xs font-semibold text-purple-300 transition-all hover:bg-purple-500/20"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-700 transition-all hover:bg-violet-100 shadow-sm"
             title="Kelola & Tambah Ruangan Baru"
           >
             <Building2 className="size-3.5" />
@@ -489,7 +489,7 @@ export function InventoryDashboard() {
           <button
             type="button"
             onClick={() => requireAdmin(() => setIsImportOpen(true))}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-300 transition-all hover:bg-emerald-500/20"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 transition-all hover:bg-emerald-100 shadow-sm"
             title="Impor data dari file Excel"
           >
             <Upload className="size-3.5" />
@@ -499,7 +499,7 @@ export function InventoryDashboard() {
           <button
             type="button"
             onClick={handleExportExcel}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-2 text-xs font-semibold text-sky-300 transition-all hover:bg-sky-500/20"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-all hover:bg-slate-50 shadow-sm"
             title="Ekspor data ke file Excel .xlsx"
           >
             <Download className="size-3.5" />
@@ -514,7 +514,7 @@ export function InventoryDashboard() {
                 setIsFormOpen(true)
               })
             }
-            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white shadow-md transition-all hover:bg-emerald-500"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:bg-violet-700"
           >
             <Plus className="size-4" />
             <span>Tambah Barang</span>
@@ -529,7 +529,7 @@ export function InventoryDashboard() {
         <button
           type="button"
           onClick={handleResetData}
-          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-rose-400"
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-rose-600"
           title="Reset ke data default (Super-Admin)"
         >
           <RefreshCw className="size-3.5" />
@@ -538,21 +538,21 @@ export function InventoryDashboard() {
       </div>
 
       {/* Table for large screens with Edit/Delete Actions */}
-      <div className="hidden overflow-hidden rounded-xl border border-border lg:block">
+      <div className="hidden overflow-hidden rounded-xl border border-border bg-card shadow-sm lg:block">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left text-sm">
-            <thead className="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
+            <thead className="bg-slate-100/80 text-xs uppercase tracking-wide text-slate-600 font-semibold border-b border-border">
               <tr>
-                <th className="px-4 py-3 font-medium">Jenis</th>
-                <th className="px-4 py-3 font-medium">Kode Inventaris</th>
-                <th className="px-4 py-3 font-medium">Kategori</th>
-                <th className="px-4 py-3 font-medium">Unit</th>
-                <th className="px-4 py-3 font-medium">Nama Barang / Device</th>
-                <th className="px-4 py-3 font-medium">Merek / Spesifikasi</th>
-                <th className="px-4 py-3 font-medium">Riwayat Perbaikan</th>
-                <th className="px-4 py-3 font-medium">Lokasi Ruangan</th>
-                <th className="px-4 py-3 font-medium">Kondisi</th>
-                <th className="px-4 py-3 font-medium text-right">Aksi</th>
+                <th className="px-4 py-3 font-semibold">Jenis</th>
+                <th className="px-4 py-3 font-semibold">Kode Inventaris</th>
+                <th className="px-4 py-3 font-semibold">Kategori</th>
+                <th className="px-4 py-3 font-semibold">Unit</th>
+                <th className="px-4 py-3 font-semibold">Nama Barang / Device</th>
+                <th className="px-4 py-3 font-semibold">Merek / Spesifikasi</th>
+                <th className="px-4 py-3 font-semibold">Riwayat Perbaikan</th>
+                <th className="px-4 py-3 font-semibold">Lokasi Ruangan</th>
+                <th className="px-4 py-3 font-semibold">Kondisi</th>
+                <th className="px-4 py-3 font-semibold text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -563,29 +563,29 @@ export function InventoryDashboard() {
                 const katKey = getCategoryFromItem(item)
                 const repairCount = item.repairLogs ? item.repairLogs.length : 0
                 return (
-                  <tr key={item.kode} className="transition-colors hover:bg-muted/30">
+                  <tr key={item.kode} className="transition-colors hover:bg-violet-50/40">
                     <td className="px-4 py-3">
                       <span
                         className={`inline-flex rounded px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase ${
                           itemType === "NON_IT"
-                            ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                            : "bg-sky-500/20 text-sky-300 border border-sky-500/30"
+                            ? "bg-amber-50 text-amber-700 border border-amber-200"
+                            : "bg-violet-50 text-violet-700 border border-violet-200"
                         }`}
                       >
                         {itemType === "NON_IT" ? "NON-IT" : "IT"}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs text-sky-300">
+                    <td className="px-4 py-3 font-mono text-xs">
                       <Link
                         href={`/a/${encodeURIComponent(item.kode)}`}
-                        className="hover:underline flex items-center gap-1 font-bold"
+                        className="hover:underline flex items-center gap-1 font-bold text-violet-700 hover:text-violet-900"
                       >
                         <span>{item.kode}</span>
-                        <ExternalLink className="size-3 text-sky-400/60" />
+                        <ExternalLink className="size-3 text-violet-400" />
                       </Link>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="inline-flex rounded-md border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 font-mono text-xs font-bold text-sky-300">
+                      <span className="inline-flex rounded-md border border-violet-200 bg-violet-50 px-2 py-0.5 font-mono text-xs font-bold text-violet-700">
                         {katKey}
                       </span>
                     </td>
@@ -595,8 +595,8 @@ export function InventoryDashboard() {
                       {itemType === "NON_IT" ? item.merekModel || item.bahanWarna || "-" : item.prosesor || "-"}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="inline-flex items-center gap-1 font-mono text-xs text-amber-300 font-semibold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-                        <Wrench className="size-3" />
+                      <span className="inline-flex items-center gap-1 font-mono text-xs text-amber-800 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                        <Wrench className="size-3 text-amber-600" />
                         <span>{repairCount}x</span>
                       </span>
                     </td>
@@ -616,7 +616,7 @@ export function InventoryDashboard() {
                               setIsFormOpen(true)
                             })
                           }
-                          className="rounded-md p-1.5 text-muted-foreground hover:bg-sky-500/15 hover:text-sky-400"
+                          className="rounded-md p-1.5 text-slate-500 hover:bg-violet-100 hover:text-violet-700 transition-colors"
                           title="Edit Barang"
                         >
                           <Pencil className="size-4" />
@@ -624,7 +624,7 @@ export function InventoryDashboard() {
                         <button
                           type="button"
                           onClick={() => requireSuperAdmin(() => setDeletingItem(item))}
-                          className="rounded-md p-1.5 text-muted-foreground hover:bg-rose-500/15 hover:text-rose-400"
+                          className="rounded-md p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
                           title="Hapus Barang (Super Admin)"
                         >
                           <Trash2 className="size-4" />
@@ -657,7 +657,7 @@ export function InventoryDashboard() {
       </div>
 
       {filtered.length === 0 && (
-        <div className="rounded-xl border border-dashed border-border py-12 text-center text-muted-foreground">
+        <div className="rounded-xl border border-dashed border-border py-12 text-center text-muted-foreground bg-card">
           Tidak ada barang yang cocok dengan pencarian / filter.
         </div>
       )}
@@ -737,26 +737,26 @@ function InventoryCard({
   const repairCount = item.repairLogs ? item.repairLogs.length : 0
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
       <div className="flex items-start justify-between gap-2">
         <div>
           <div className="flex items-center gap-1.5">
             <span
-              className={`rounded px-1.5 py-0.2 font-mono text-[10px] font-bold ${
-                itemType === "NON_IT" ? "bg-amber-500/20 text-amber-300" : "bg-sky-500/20 text-sky-300"
+              className={`rounded px-1.5 py-0.5 font-mono text-[10px] font-bold ${
+                itemType === "NON_IT" ? "bg-amber-50 text-amber-700 border border-amber-200" : "bg-violet-50 text-violet-700 border border-violet-200"
               }`}
             >
               {itemType === "NON_IT" ? "NON-IT" : "IT"}
             </span>
-            <span className="rounded border border-sky-500/30 bg-sky-500/10 px-1.5 py-0.2 font-mono text-[10px] font-bold text-sky-300">
+            <span className="rounded border border-violet-200 bg-violet-50 px-1.5 py-0.5 font-mono text-[10px] font-bold text-violet-700">
               {katKey}
             </span>
-            <Link href={`/a/${encodeURIComponent(item.kode)}`} className="font-mono text-xs text-sky-300 hover:underline flex items-center gap-1">
+            <Link href={`/a/${encodeURIComponent(item.kode)}`} className="font-mono text-xs text-violet-700 hover:text-violet-900 font-bold hover:underline flex items-center gap-1">
               <span>{item.kode}</span>
-              <ExternalLink className="size-3" />
+              <ExternalLink className="size-3 text-violet-400" />
             </Link>
           </div>
-          <p className="mt-1 font-medium text-foreground">{item.namaPc || "Tanpa Nama"}</p>
+          <p className="mt-1 font-semibold text-foreground">{item.namaPc || "Tanpa Nama"}</p>
         </div>
         <span className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-medium ${meta.className}`}>
           {meta.label}
@@ -784,15 +784,15 @@ function InventoryCard({
         <button
           type="button"
           onClick={onEdit}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100 transition-colors"
         >
-          <Pencil className="size-3.5 text-sky-400" />
+          <Pencil className="size-3.5" />
           <span>Edit</span>
         </button>
         <button
           type="button"
           onClick={onDelete}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-1.5 text-xs font-medium text-rose-400 hover:bg-rose-500/20"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition-colors"
         >
           <Trash2 className="size-3.5" />
           <span>Hapus</span>

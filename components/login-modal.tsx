@@ -31,18 +31,18 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative my-8 w-full max-w-md rounded-2xl border border-sky-500/30 bg-card p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="relative my-8 w-full max-w-md rounded-2xl border border-violet-200 bg-card p-6 shadow-2xl">
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-lg p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+          className="absolute right-4 top-4 rounded-lg p-1 text-muted-foreground hover:bg-slate-100 hover:text-foreground"
         >
           <X className="size-5" />
         </button>
 
         <div className="flex items-center gap-3">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-sky-500/15 text-sky-400">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-700">
             <LogIn className="size-5" />
           </div>
           <div>
@@ -53,7 +53,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           {errorMsg && (
-            <div className="rounded-xl border border-rose-500/30 bg-rose-950/30 p-3 text-xs text-rose-300">
+            <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700">
               {errorMsg}
             </div>
           )}
@@ -66,7 +66,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground outline-none focus:border-sky-500"
+                className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-3 text-sm text-foreground outline-none focus:border-violet-500"
                 placeholder="Masukkan username"
                 required
               />
@@ -81,7 +81,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-10 text-sm text-foreground outline-none focus:border-sky-500"
+                className="w-full rounded-lg border border-border bg-background py-2 pl-9 pr-10 text-sm text-foreground outline-none focus:border-violet-500"
                 placeholder="••••••••"
                 required
               />
@@ -99,13 +99,13 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+              className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-slate-50 hover:text-foreground"
             >
               Batal
             </button>
             <button
               type="submit"
-              className="inline-flex items-center gap-2 rounded-lg bg-sky-500 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-500/25 transition-all hover:bg-sky-400"
+              className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-5 py-2 text-sm font-semibold text-white shadow-md transition-all hover:bg-violet-700"
             >
               <LogIn className="size-4" />
               <span>Masuk Sekarang</span>

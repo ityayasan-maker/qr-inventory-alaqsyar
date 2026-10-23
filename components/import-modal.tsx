@@ -66,23 +66,23 @@ export function ImportModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/75 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative my-8 w-full max-w-3xl rounded-2xl border border-border bg-card shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/40 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="relative my-8 w-full max-w-3xl rounded-2xl border border-violet-200 bg-card shadow-2xl">
         {/* Modal Header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
               <FileSpreadsheet className="size-5" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-foreground">Impor Data Inventaris Excel</h2>
+              <h2 className="text-lg font-bold text-foreground">Impor Data Inventaris Excel</h2>
               <p className="text-xs text-muted-foreground">Pilih kategori barang (IT / Non-IT) sebelum mengunggah file spreadsheet</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="rounded-lg p-2 text-muted-foreground hover:bg-slate-100 hover:text-foreground"
           >
             <X className="size-5" />
           </button>
@@ -95,14 +95,14 @@ export function ImportModal({
             <label className="block text-xs font-bold text-muted-foreground mb-1.5">
               1. Pilih Kategori Barang yang Akan Diimpor:
             </label>
-            <div className="flex rounded-xl border border-border bg-muted/40 p-1">
+            <div className="flex rounded-xl border border-border bg-slate-100 p-1">
               <button
                 type="button"
                 onClick={() => handleTypeSwitch("IT")}
                 className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold transition-all ${
                   importType === "IT"
-                    ? "bg-sky-500 text-white shadow-md"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-violet-600 text-white shadow-sm"
+                    : "text-slate-600 hover:text-foreground"
                 }`}
               >
                 <Laptop className="size-4" />
@@ -113,8 +113,8 @@ export function ImportModal({
                 onClick={() => handleTypeSwitch("NON_IT")}
                 className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold transition-all ${
                   importType === "NON_IT"
-                    ? "bg-amber-500 text-white shadow-md"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-amber-600 text-white shadow-sm"
+                    : "text-slate-600 hover:text-foreground"
                 }`}
               >
                 <Armchair className="size-4" />
@@ -124,19 +124,19 @@ export function ImportModal({
           </div>
 
           {/* Download Template Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
             <div>
-              <p className="text-sm font-semibold text-emerald-300">
+              <p className="text-sm font-semibold text-emerald-800">
                 Template Format Excel ({importType === "IT" ? "Barang IT" : "Barang Non-IT"})
               </p>
-              <p className="text-xs text-emerald-400/80">
+              <p className="text-xs text-emerald-700">
                 Unduh template resmi dengan struktur kolom {importType === "IT" ? "termasuk Keyboard & Mouse" : "spesifik HR / GA"}
               </p>
             </div>
             <button
               type="button"
               onClick={importType === "IT" ? downloadTemplateExcelIT : downloadTemplateExcelNonIT}
-              className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white shadow-md hover:bg-emerald-500"
+              className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 transition-colors"
             >
               <Download className="size-4" />
               <span>Unduh Template {importType === "IT" ? "IT" : "Non-IT"}</span>
@@ -148,8 +148,8 @@ export function ImportModal({
             <label className="block text-xs font-semibold text-muted-foreground mb-2">
               2. Pilih File Spreadsheet (.xlsx / .xls)
             </label>
-            <div className="relative flex min-h-36 flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-background p-6 text-center transition-colors hover:border-emerald-500/50">
-              <Upload className="size-8 text-emerald-400/70 mb-2" />
+            <div className="relative flex min-h-36 flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-slate-50/50 p-6 text-center transition-colors hover:border-violet-400">
+              <Upload className="size-8 text-emerald-600 mb-2" />
               <p className="text-sm font-medium text-foreground">
                 {file ? file.name : `Klik atau seret file Excel ${importType === "IT" ? "Barang IT" : "Barang Non-IT"} ke sini`}
               </p>
@@ -164,8 +164,8 @@ export function ImportModal({
           </div>
 
           {errorMsg && (
-            <div className="flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-950/30 p-3 text-xs text-rose-300">
-              <AlertCircle className="size-4 shrink-0 text-rose-400" />
+            <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-medium text-rose-700">
+              <AlertCircle className="size-4 shrink-0 text-rose-600" />
               <span>{errorMsg}</span>
             </div>
           )}
@@ -175,7 +175,7 @@ export function ImportModal({
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-foreground">
-                  Preview Import ({importType}): <span className="text-emerald-400">{parsedRows.length} unit</span> terdeteksi
+                  Preview Import ({importType}): <span className="text-emerald-700 font-bold">{parsedRows.length} unit</span> terdeteksi
                 </p>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <label htmlFor="strategySelect" className="font-semibold">Penanganan Duplikat Kode:</label>
@@ -193,7 +193,7 @@ export function ImportModal({
 
               <div className="max-h-56 overflow-y-auto rounded-xl border border-border bg-background">
                 <table className="w-full text-left text-xs border-collapse">
-                  <thead className="sticky top-0 bg-muted/90 backdrop-blur-xs text-muted-foreground uppercase font-semibold">
+                  <thead className="sticky top-0 bg-slate-100 text-slate-600 uppercase font-semibold">
                     <tr>
                       <th className="px-3 py-2">Kode Aset</th>
                       <th className="px-3 py-2">Jurusan</th>
@@ -216,8 +216,8 @@ export function ImportModal({
                   </thead>
                   <tbody className="divide-y divide-border">
                     {parsedRows.slice(0, 50).map((row, idx) => (
-                      <tr key={idx} className="hover:bg-muted/30">
-                        <td className="px-3 py-2 font-mono font-bold text-sky-400">{row.kode}</td>
+                      <tr key={idx} className="hover:bg-violet-50/40">
+                        <td className="px-3 py-2 font-mono font-bold text-violet-700">{row.kode}</td>
                         <td className="px-3 py-2 text-foreground">{row.jurusan}</td>
                         <td className="px-3 py-2 text-foreground">{row.namaPc || "-"}</td>
                         {importType === "IT" ? (
@@ -248,7 +248,7 @@ export function ImportModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+            className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-slate-50 hover:text-foreground"
           >
             Batal
           </button>
@@ -256,7 +256,7 @@ export function ImportModal({
             type="button"
             onClick={handleCommit}
             disabled={parsedRows.length === 0 || busy}
-            className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-600/25 transition-all hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <CheckCircle2 className="size-4" />
             <span>Impor {parsedRows.length > 0 ? `${parsedRows.length} Data ${importType}` : "Sekarang"}</span>

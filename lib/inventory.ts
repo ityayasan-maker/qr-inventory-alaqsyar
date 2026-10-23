@@ -108,9 +108,9 @@ export function kondisiStatus(kondisi: string): KondisiStatus {
 }
 
 export const kondisiMeta: Record<KondisiStatus, { label: string; className: string }> = {
-  baik: { label: "Baik", className: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
-  bermasalah: { label: "Rusak Ringan / Bermasalah", className: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
-  mati: { label: "Rusak Berat / Mati", className: "bg-rose-500/15 text-rose-400 border-rose-500/30" },
+  baik: { label: "Baik", className: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  bermasalah: { label: "Rusak Ringan", className: "bg-amber-50 text-amber-700 border-amber-200" },
+  mati: { label: "Rusak Berat", className: "bg-rose-50 text-rose-700 border-rose-200" },
 }
 
 export function getStats(items: InventoryItem[]) {

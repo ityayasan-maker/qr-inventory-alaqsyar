@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, RefreshCw, Armchair, Laptop, Wrench, Plus, CheckCircle2, ShieldCheck } from "lucide-react"
+import { ArrowLeft, RefreshCw, Armchair, Laptop, Wrench, Plus, CheckCircle2, ShieldCheck, Calendar, DollarSign, UserCheck } from "lucide-react"
 import {
   getStoredInventory,
   saveStoredInventory,
@@ -70,7 +70,7 @@ export function AssetDetailView({ initialItem, kode }: AssetDetailViewProps) {
       id: `rep-${Date.now()}`,
       tanggal: repairDate || new Date().toISOString().slice(0, 10),
       keterangan: repairDesc.trim(),
-      teknisi: repairTech.trim() || "Tim IT / GA",
+      teknisi: repairTech.trim() || "Tim IT/GA",
       biaya: repairCost.trim() || "-",
     }
 
@@ -107,16 +107,16 @@ export function AssetDetailView({ initialItem, kode }: AssetDetailViewProps) {
         {session && (
           <Link
             href="/"
-            className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+            className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-purple-600 hover:text-purple-800"
           >
             <ArrowLeft className="size-4" />
             Kembali ke Dashboard Admin
           </Link>
         )}
-        <div className="rounded-2xl border border-rose-500/30 bg-card p-8 shadow-xl">
-          <h1 className="text-xl font-bold text-rose-400">Barang Tidak Ditemukan</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Kode aset <span className="font-mono text-sky-300">{kode}</span> tidak terdaftar atau sudah dihapus.
+        <div className="rounded-2xl border border-rose-200 bg-white p-8 shadow-xl">
+          <h1 className="text-xl font-bold text-rose-600">Barang Tidak Ditemukan</h1>
+          <p className="mt-2 text-sm text-slate-600">
+            Kode aset <span className="font-mono font-bold text-purple-700">{kode}</span> tidak terdaftar atau sudah dihapus.
           </p>
         </div>
       </main>
@@ -204,131 +204,139 @@ export function AssetDetailView({ initialItem, kode }: AssetDetailViewProps) {
         <div className="mb-6 flex items-center justify-between">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-xs font-semibold text-sky-400 hover:underline"
+            className="inline-flex items-center gap-2 text-xs font-bold text-purple-700 hover:underline"
           >
             <ArrowLeft className="size-4" />
             Kembali ke Dashboard Admin ({session.name})
           </Link>
-          <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-[11px] font-bold text-emerald-400 flex items-center gap-1">
+          <span className="rounded-full bg-purple-100 border border-purple-200 px-2.5 py-0.5 text-[11px] font-bold text-purple-700 flex items-center gap-1">
             <ShieldCheck className="size-3" />
             {session.role === "superadmin" ? "Super Admin" : "Admin"}
           </span>
         </div>
       ) : (
         <div className="mb-4 text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-500/30 bg-sky-500/10 px-3 py-1 text-xs font-semibold text-sky-300">
-            Kartu Inventaris Resmi Al-Aqsyar
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-purple-200 bg-white px-3.5 py-1 text-xs font-bold text-purple-700 shadow-xs">
+            Kartu Inventaris Resmi SMK Al-Aqsyar
           </span>
         </div>
       )}
 
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-xl relative">
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xl relative">
         {loading && (
-          <div className="absolute right-4 top-4 flex items-center gap-1.5 text-xs text-sky-400">
+          <div className="absolute right-4 top-4 flex items-center gap-1.5 text-xs text-purple-600 font-medium">
             <RefreshCw className="size-3.5 animate-spin" />
             <span>Memutakhirkan...</span>
           </div>
         )}
 
         <div className="flex items-center justify-between gap-2">
-          <span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 font-mono text-xs font-bold ${
+          <span className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 font-mono text-xs font-bold ${
             itemType === "NON_IT"
-              ? "border-amber-500/40 bg-amber-500/10 text-amber-300"
-              : "border-sky-500/40 bg-sky-500/10 text-sky-300"
+              ? "border-amber-200 bg-amber-50 text-amber-800"
+              : "border-purple-200 bg-purple-50 text-purple-800"
           }`}>
             {itemType === "NON_IT" ? <Armchair className="size-3.5" /> : <Laptop className="size-3.5" />}
             <span>[{katKey}] {katLabel}</span>
           </span>
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
             {itemType === "NON_IT" ? "Aset HR / GA" : "Aset IT"}
           </span>
         </div>
 
-        <div className="mt-3 flex items-start justify-between gap-3">
-          <h1 className="font-mono text-lg font-bold text-sky-400">{item.kode}</h1>
-          <span className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-medium ${meta.className}`}>
+        <div className="mt-4 flex items-start justify-between gap-3">
+          <div>
+            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Kode Inventaris</span>
+            <h1 className="font-mono text-xl font-extrabold text-purple-700">{item.kode}</h1>
+          </div>
+          <span className={`shrink-0 rounded-full border px-3 py-1 text-xs font-bold ${meta.className}`}>
             {meta.label}
           </span>
         </div>
-        <p className="mt-1 text-xl font-semibold text-foreground">{item.namaPc || "Tanpa Nama"}</p>
+        <p className="mt-1 text-lg font-bold text-slate-800">{item.namaPc || "Tanpa Nama"}</p>
 
         {/* Specifications Table */}
-        <dl className="mt-6 divide-y divide-border">
+        <dl className="mt-5 divide-y divide-slate-100 rounded-xl border border-slate-100 bg-slate-50/50 p-2">
           {rows.map(([label, value]) => (
-            <div key={label} className="grid grid-cols-3 gap-3 py-2.5">
-              <dt className="text-sm text-muted-foreground font-medium">{label}</dt>
-              <dd className="col-span-2 text-sm text-foreground">{value || "-"}</dd>
+            <div key={label} className="grid grid-cols-3 gap-2 px-3 py-2.5">
+              <dt className="text-xs font-semibold text-slate-500">{label}</dt>
+              <dd className="col-span-2 text-xs font-medium text-slate-800">{value || "-"}</dd>
             </div>
           ))}
         </dl>
 
-        {/* REPAIR LOGS SECTION (TRACKING RIWAYAT PERBAIKAN) */}
-        <div className="mt-8 border-t border-border pt-6">
+        {/* REPAIR LOGS SECTION (TRACKING RIWAYAT PERBAIKAN SETELAH SCAN) */}
+        <div className="mt-6 border-t border-slate-200 pt-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Wrench className="size-4 text-amber-400" />
-              <h2 className="text-sm font-bold text-foreground">Riwayat Perbaikan</h2>
-              <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.2 font-mono text-[11px] font-bold text-amber-300">
-                {logs.length}x
-              </span>
+              <div className="flex size-7 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
+                <Wrench className="size-4" />
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-slate-800">Riwayat Perbaikan Unit</h2>
+                <p className="text-[11px] text-slate-500">Histori perbaikan &amp; perawatan berkala</p>
+              </div>
             </div>
-
-            {session && !isAddingRepair && (
-              <button
-                type="button"
-                onClick={() => setIsAddingRepair(true)}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-sky-400 hover:underline"
-              >
-                <Plus className="size-3.5" />
-                <span>+ Catatan</span>
-              </button>
-            )}
+            <span className="rounded-full bg-amber-100 border border-amber-200 px-2.5 py-0.5 font-mono text-xs font-bold text-amber-800">
+              {logs.length}x Perbaikan
+            </span>
           </div>
+
+          {session && !isAddingRepair && (
+            <button
+              type="button"
+              onClick={() => setIsAddingRepair(true)}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-3 py-1.5 text-xs font-bold text-purple-700 hover:bg-purple-100 transition-colors w-full justify-center"
+            >
+              <Plus className="size-3.5" />
+              <span>+ Tambah Catatan Perbaikan</span>
+            </button>
+          )}
 
           {/* Form Tambah Log Perbaikan (Khusus Admin) */}
           {isAddingRepair && session && (
-            <form onSubmit={handleAddRepairLog} className="mt-4 rounded-xl border border-sky-500/30 bg-sky-950/20 p-4 space-y-3">
-              <p className="text-xs font-bold text-sky-300">Tambah Catatan Perbaikan / Service</p>
+            <form onSubmit={handleAddRepairLog} className="mt-4 rounded-xl border border-purple-200 bg-purple-50/40 p-4 space-y-3">
+              <p className="text-xs font-bold text-purple-900">Catat Perbaikan / Service Baru</p>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-[10px] text-muted-foreground mb-1">Tanggal</label>
+                  <label className="block text-[11px] font-medium text-slate-600 mb-1">Tanggal</label>
                   <input
                     type="date"
                     value={repairDate}
                     onChange={(e) => setRepairDate(e.target.value)}
-                    className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground outline-none"
+                    className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-800 outline-none focus:border-purple-500"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] text-muted-foreground mb-1">Teknisi / Penanggung Jawab</label>
+                  <label className="block text-[11px] font-medium text-slate-600 mb-1">Teknisi / PJ</label>
                   <input
                     type="text"
                     value={repairTech}
                     onChange={(e) => setRepairTech(e.target.value)}
-                    className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground outline-none"
-                    placeholder="Tim IT / Pak Dede"
+                    className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-800 outline-none focus:border-purple-500"
+                    placeholder="Contoh: Pak Dede / Tim IT"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-[10px] text-muted-foreground mb-1">Detail Perbaikan *</label>
+                <label className="block text-[11px] font-medium text-slate-600 mb-1">Detail Perbaikan *</label>
                 <input
                   type="text"
                   value={repairDesc}
                   onChange={(e) => setRepairDesc(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground outline-none"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-800 outline-none focus:border-purple-500"
                   placeholder="Contoh: Ganti Thermal Paste & Power Supply 500W"
                   required
                 />
               </div>
               <div>
-                <label className="block text-[10px] text-muted-foreground mb-1">Biaya (Opsional)</label>
+                <label className="block text-[11px] font-medium text-slate-600 mb-1">Biaya (Opsional)</label>
                 <input
                   type="text"
                   value={repairCost}
                   onChange={(e) => setRepairCost(e.target.value)}
-                  className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 text-xs text-foreground outline-none"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-800 outline-none focus:border-purple-500"
                   placeholder="Rp 250.000 / -"
                 />
               </div>
@@ -336,13 +344,13 @@ export function AssetDetailView({ initialItem, kode }: AssetDetailViewProps) {
                 <button
                   type="button"
                   onClick={() => setIsAddingRepair(false)}
-                  className="rounded-lg border border-border px-3 py-1 text-xs text-muted-foreground hover:text-foreground"
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="inline-flex items-center gap-1 rounded-lg bg-sky-500 px-3 py-1 text-xs font-bold text-white hover:bg-sky-400"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-purple-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-purple-700 shadow-xs"
                 >
                   <CheckCircle2 className="size-3.5" />
                   <span>Simpan Catatan</span>
@@ -352,19 +360,23 @@ export function AssetDetailView({ initialItem, kode }: AssetDetailViewProps) {
           )}
 
           {/* List Log Perbaikan */}
-          <div className="mt-3 space-y-2">
+          <div className="mt-3.5 space-y-2">
             {logs.length === 0 ? (
-              <p className="text-xs text-muted-foreground italic">Belum ada riwayat perbaikan yang dicatat untuk barang ini.</p>
+              <div className="rounded-xl border border-dashed border-slate-200 p-4 text-center">
+                <p className="text-xs text-slate-500 italic">
+                  Belum ada riwayat perbaikan yang dicatat untuk barang ini.
+                </p>
+              </div>
             ) : (
               logs.map((log) => (
-                <div key={log.id} className="rounded-xl border border-border bg-background p-3 text-xs space-y-1">
-                  <div className="flex items-center justify-between text-muted-foreground">
-                    <span className="font-mono font-bold text-amber-400">{log.tanggal}</span>
-                    <span>PJ: {log.teknisi || "Tim IT"}</span>
+                <div key={log.id} className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-xs space-y-1 shadow-2xs">
+                  <div className="flex items-center justify-between text-slate-500">
+                    <span className="font-mono font-bold text-purple-700">{log.tanggal}</span>
+                    <span className="font-medium text-slate-600">Teknisi: {log.teknisi || "Tim IT/GA"}</span>
                   </div>
-                  <p className="font-medium text-foreground">{log.keterangan}</p>
+                  <p className="font-semibold text-slate-800">{log.keterangan}</p>
                   {log.biaya && log.biaya !== "-" && (
-                    <p className="text-[11px] text-muted-foreground">Biaya: <span className="text-emerald-400 font-semibold">{log.biaya}</span></p>
+                    <p className="text-[11px] text-emerald-700 font-bold">Biaya: {log.biaya}</p>
                   )}
                 </div>
               ))
@@ -373,8 +385,8 @@ export function AssetDetailView({ initialItem, kode }: AssetDetailViewProps) {
         </div>
       </div>
 
-      <p className="mt-4 text-center text-xs text-muted-foreground">
-        Kartu Inventaris Resmi Al-Aqsyar. Informasi khusus unit ini.
+      <p className="mt-5 text-center text-xs text-slate-400">
+        Kartu Inventaris Resmi Al-Aqsyar &middot; Data terhubung langsung secara real-time.
       </p>
     </main>
   )

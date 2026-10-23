@@ -8,10 +8,10 @@ type Props = {
 }
 
 const cards = [
-  { key: "total", label: "Total Unit PC", icon: Monitor, tone: "text-sky-400", ring: "ring-sky-500/20" },
-  { key: "baik", label: "Kondisi Baik", icon: CheckCircle2, tone: "text-emerald-400", ring: "ring-emerald-500/20" },
-  { key: "bermasalah", label: "Bermasalah", icon: AlertTriangle, tone: "text-amber-400", ring: "ring-amber-500/20" },
-  { key: "mati", label: "Mati / Rusak", icon: XCircle, tone: "text-rose-400", ring: "ring-rose-500/20" },
+  { key: "total", label: "Total Unit Aset", icon: Monitor, tone: "text-purple-600", bg: "bg-purple-50", ring: "border-purple-200" },
+  { key: "baik", label: "Kondisi Baik", icon: CheckCircle2, tone: "text-emerald-600", bg: "bg-emerald-50", ring: "border-emerald-200" },
+  { key: "bermasalah", label: "Rusak Ringan", icon: AlertTriangle, tone: "text-amber-600", bg: "bg-amber-50", ring: "border-amber-200" },
+  { key: "mati", label: "Rusak Berat", icon: XCircle, tone: "text-rose-600", bg: "bg-rose-50", ring: "border-rose-200" },
 ] as const
 
 export function StatCards(props: Props) {
@@ -22,13 +22,15 @@ export function StatCards(props: Props) {
         return (
           <div
             key={c.key}
-            className={`rounded-xl border border-border bg-card p-4 ring-1 ${c.ring}`}
+            className={`rounded-2xl border ${c.ring} bg-white p-4.5 shadow-xs transition-shadow hover:shadow-sm`}
           >
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">{c.label}</span>
-              <Icon className={`size-5 ${c.tone}`} aria-hidden />
+              <span className="text-xs font-semibold text-slate-500">{c.label}</span>
+              <div className={`flex size-8 items-center justify-center rounded-lg ${c.bg}`}>
+                <Icon className={`size-4.5 ${c.tone}`} aria-hidden />
+              </div>
             </div>
-            <p className="mt-3 text-3xl font-semibold tabular-nums text-foreground">
+            <p className="mt-2 text-2xl sm:text-3xl font-extrabold tabular-nums text-slate-800">
               {props[c.key]}
             </p>
           </div>
