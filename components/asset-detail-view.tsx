@@ -222,6 +222,17 @@ export function AssetDetailView({ initialItem, kode }: AssetDetailViewProps) {
         </div>
       )}
 
+      {/* Header Logo SMK Al-Aqsyar */}
+      <div className="mb-4 flex items-center justify-center gap-3">
+        <div className="flex size-10 items-center justify-center rounded-xl bg-white p-1 border border-purple-100 shadow-sm overflow-hidden shrink-0">
+          <img src="/logo-alaqsyar.png" alt="Logo Al-Aqsyar" className="size-full object-contain" />
+        </div>
+        <div>
+          <h2 className="text-sm font-bold text-slate-900 leading-tight">SMK AL-AQSYAR</h2>
+          <p className="text-[10px] text-slate-500 font-medium">Sistem Inventaris Aset Resmi</p>
+        </div>
+      </div>
+
       <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xl relative">
         {loading && (
           <div className="absolute right-4 top-4 flex items-center gap-1.5 text-xs text-purple-600 font-medium">

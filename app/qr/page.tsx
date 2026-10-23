@@ -7,8 +7,8 @@ export default function QrPage() {
     <main className="min-h-svh bg-slate-50/60 text-slate-800">
       <header className="border-b border-purple-100 bg-white shadow-2xs">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-4 sm:px-6">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white shadow-xs">
-            <QrCode className="size-5" aria-hidden />
+          <div className="flex size-11 items-center justify-center rounded-xl bg-white p-1 border border-purple-100 shadow-sm overflow-hidden shrink-0">
+            <img src="/logo-alaqsyar.png" alt="Logo Al-Aqsyar" className="size-full object-contain" />
           </div>
           <div className="min-w-0 flex-1">
             <h1 className="text-base sm:text-lg font-bold tracking-tight text-slate-900">

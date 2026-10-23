@@ -3,25 +3,12 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Inventaris Komputer Al-Aqsyar',
-  description: 'Dashboard inventaris unit komputer SMK Al-Aqsyar per jurusan (TJKT, MPLB, DKV, AKL, PM, SMP).',
-  generator: 'v0.app',
+  title: 'Inventaris Komputer & Aset Al-Aqsyar',
+  description: 'Dashboard inventaris unit komputer & aset SMK Al-Aqsyar terintegrasi QR Code.',
   icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
+    icon: '/logo-alaqsyar.png',
+    shortcut: '/logo-alaqsyar.png',
+    apple: '/logo-alaqsyar.png',
   },
 }
 
