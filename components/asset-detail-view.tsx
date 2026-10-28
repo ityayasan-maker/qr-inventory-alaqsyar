@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { ArrowLeft, RefreshCw, Armchair, Laptop, Wrench, Plus, CheckCircle2, ShieldCheck, Calendar, DollarSign, UserCheck } from "lucide-react"
+import { ArrowLeft, RefreshCw, Armchair, Laptop, Wrench, Plus, CheckCircle2, ShieldCheck, Calendar, DollarSign, UserCheck, KeyRound, AlertCircle } from "lucide-react"
 import {
   getStoredInventory,
   saveStoredInventory,
@@ -14,7 +14,7 @@ import {
   type RepairLog,
 } from "@/lib/inventory"
 import { getStoredCategories } from "@/lib/master-data"
-import { getStoredSession, type UserSession } from "@/lib/auth"
+import { getStoredSession, loginAdmin, type UserSession } from "@/lib/auth"
 
 interface AssetDetailViewProps {
   initialItem: InventoryItem | null
@@ -25,20 +25,32 @@ export function AssetDetailView({ initialItem, kode }: AssetDetailViewProps) {
   const [item, setItem] = useState<InventoryItem | null>(initialItem)
   const [session, setSession] = useState<UserSession | null>(null)
   const [loading, setLoading] = useState(false)
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
 
-  // New Repair Log Form State
+  // New Repair Log Form State (Update Poin 3 untuk Pak Joko)
   const [isAddingRepair, setIsAddingRepair] = useState(false)
+  const [isQuickAuthOpen, setIsQuickAuthOpen] = useState(false)
+  const [quickAuthPass, setQuickAuthPass] = useState("")
+  const [quickAuthError, setQuickAuthError] = useState<string | null>(null)
+
   const [repairDate, setRepairDate] = useState(new Date().toISOString().slice(0, 10))
   const [repairDesc, setRepairDesc] = useState("")
-  const [repairTech, setRepairTech] = useState("")
+  const [repairTech, setRepairTech] = useState("Pak Joko")
   const [repairCost, setRepairCost] = useState("")
+  const [repairKondisi, setRepairKondisi] = useState<string>("Baik")
 
   useEffect(() => {
-    setSession(getStoredSession())
+    const currentSession = getStoredSession()
+    setSession(currentSession)
+    if (currentSession?.name.includes("Joko")) {
+      setRepairTech("Pak Joko (Teknisi IT)")
+    }
+
     const stored = getStoredInventory()
     const found = stored.find((i) => i.kode === kode)
     if (found) {
       setItem(found)
+      setRepairKondisi(found.kondisi || "Baik")
     }
 
     async function fetchLive() {
@@ -50,6 +62,7 @@ export function AssetDetailView({ initialItem, kode }: AssetDetailViewProps) {
           const liveFound = list.find((i) => i.kode === kode)
           if (liveFound) {
             setItem(liveFound)
+            setRepairKondisi(liveFound.kondisi || "Baik")
           }
         }
       } catch (e) {
@@ -62,6 +75,26 @@ export function AssetDetailView({ initialItem, kode }: AssetDetailViewProps) {
     fetchLive()
   }, [kode])
 
+  const showToast = (msg: string) => {
+    setToastMessage(msg)
+    setTimeout(() => setToastMessage(null), 4000)
+  }
+
+  // Handle Quick Auth for Pak Joko / Teknisi
+  const handleQuickAuth = (e: React.FormEvent) => {
+    e.preventDefault()
+    setQuickAuthError(null)
+    const res = loginAdmin("pakjoko", quickAuthPass)
+    if (res.success && res.session) {
+      setSession(res.session)
+      setIsQuickAuthOpen(false)
+      setIsAddingRepair(true)
+      showToast("Berhasil login sebagai Pak Joko / Teknisi IT")
+    } else {
+      setQuickAuthError("Password teknisi/admin tidak valid")
+    }
+  }
+
   const handleAddRepairLog = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!item || !repairDesc.trim()) return
@@ -70,12 +103,16 @@ export function AssetDetailView({ initialItem, kode }: AssetDetailViewProps) {
       id: `rep-${Date.now()}`,
       tanggal: repairDate || new Date().toISOString().slice(0, 10),
       keterangan: repairDesc.trim(),
-      teknisi: repairTech.trim() || "Tim IT/GA",
+      teknisi: repairTech.trim() || "Pak Joko (Teknisi IT)",
       biaya: repairCost.trim() || "-",
     }
 
     const updatedLogs = [newLog, ...(item.repairLogs || [])]
-    const updatedItem = { ...item, repairLogs: updatedLogs }
+    const updatedItem: InventoryItem = {
+      ...item,
+      kondisi: repairKondisi,
+      repairLogs: updatedLogs,
+    }
 
     setItem(updatedItem)
 
@@ -83,6 +120,9 @@ export function AssetDetailView({ initialItem, kode }: AssetDetailViewProps) {
     const allStored = getStoredInventory()
     const updatedAll = allStored.map((i) => (i.kode === kode ? updatedItem : i))
     saveStoredInventory(updatedAll)
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("inventory_updated"))
+    }
 
     // Sync API
     try {
@@ -96,9 +136,9 @@ export function AssetDetailView({ initialItem, kode }: AssetDetailViewProps) {
     }
 
     setRepairDesc("")
-    setRepairTech("")
     setRepairCost("")
     setIsAddingRepair(false)
+    showToast("Riwayat perbaikan berhasil disimpan & kondisi barang diperbarui!")
   }
 
   if (!item) {
@@ -293,24 +333,96 @@ export function AssetDetailView({ initialItem, kode }: AssetDetailViewProps) {
             </span>
           </div>
 
-          {session && !isAddingRepair && (
+          {/* Toast Notification */}
+          {toastMessage && (
+            <div className="mt-3 flex items-center gap-2 rounded-xl bg-emerald-600 px-3.5 py-2.5 text-xs font-semibold text-white shadow-md animate-in fade-in">
+              <CheckCircle2 className="size-4 shrink-0" />
+              <span>{toastMessage}</span>
+            </div>
+          )}
+
+          {/* Trigger Button (Bisa diakses siapa saja, jika belum login akan verifikasi password cepat) */}
+          {!isAddingRepair && !isQuickAuthOpen && (
             <button
               type="button"
-              onClick={() => setIsAddingRepair(true)}
-              className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-3 py-1.5 text-xs font-bold text-purple-700 hover:bg-purple-100 transition-colors w-full justify-center"
+              onClick={() => {
+                if (session) {
+                  setIsAddingRepair(true)
+                } else {
+                  setIsQuickAuthOpen(true)
+                }
+              }}
+              className="mt-3 inline-flex items-center gap-2 rounded-xl border border-purple-300 bg-purple-50 px-4 py-2.5 text-xs font-bold text-purple-800 hover:bg-purple-100 transition-all w-full justify-center shadow-xs cursor-pointer"
             >
-              <Plus className="size-3.5" />
-              <span>+ Tambah Catatan Perbaikan</span>
+              <Plus className="size-4 text-purple-600" />
+              <span>+ Catat Perbaikan Unit (Pak Joko / Teknisi IT)</span>
             </button>
           )}
 
-          {/* Form Tambah Log Perbaikan (Khusus Admin) */}
+          {/* Form Verifikasi Cepat jika Teknisi scan dari HP belum login */}
+          {isQuickAuthOpen && !session && (
+            <form onSubmit={handleQuickAuth} className="mt-4 rounded-xl border border-amber-200 bg-amber-50/50 p-4 space-y-3 animate-in fade-in">
+              <div className="flex items-center gap-2 text-xs font-bold text-amber-900">
+                <KeyRound className="size-4 text-amber-700" />
+                <span>Verifikasi Akses Teknisi / Admin</span>
+              </div>
+              <p className="text-[11px] text-slate-600">
+                Masukkan password IT Yayasan untuk mencatat perbaikan unit ini langsung dari HP.
+              </p>
+
+              {quickAuthError && (
+                <div className="flex items-center gap-1.5 text-[11px] text-rose-600 font-semibold bg-rose-50 border border-rose-200 p-2 rounded-lg">
+                  <AlertCircle className="size-3.5 shrink-0" />
+                  <span>{quickAuthError}</span>
+                </div>
+              )}
+
+              <div>
+                <input
+                  type="password"
+                  value={quickAuthPass}
+                  onChange={(e) => setQuickAuthPass(e.target.value)}
+                  placeholder="Password Teknisi (ITYAYASAN1999)"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus:border-purple-500 shadow-xs"
+                  required
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsQuickAuthOpen(false)}
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-purple-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-purple-700 shadow-xs cursor-pointer"
+                >
+                  <UserCheck className="size-3.5" />
+                  <span>Masuk &amp; Catat Perbaikan</span>
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Form Tambah Log Perbaikan Cepat (Update Poin 3 untuk Pak Joko) */}
           {isAddingRepair && session && (
-            <form onSubmit={handleAddRepairLog} className="mt-4 rounded-xl border border-purple-200 bg-purple-50/40 p-4 space-y-3">
-              <p className="text-xs font-bold text-purple-900">Catat Perbaikan / Service Baru</p>
+            <form onSubmit={handleAddRepairLog} className="mt-4 rounded-xl border border-purple-200 bg-purple-50/40 p-4 space-y-3 animate-in fade-in">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold text-purple-900 flex items-center gap-1.5">
+                  <Wrench className="size-3.5 text-purple-700" />
+                  <span>Catat Perbaikan / Servis Baru</span>
+                </p>
+                <span className="text-[10px] text-purple-700 bg-purple-100 font-bold px-2 py-0.5 rounded-full">
+                  Petugas: {session.name}
+                </span>
+              </div>
+
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-600 mb-1">Tanggal</label>
+                  <label className="block text-[11px] font-medium text-slate-600 mb-1">Tanggal Servis</label>
                   <input
                     type="date"
                     value={repairDate}
@@ -320,51 +432,109 @@ export function AssetDetailView({ initialItem, kode }: AssetDetailViewProps) {
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-medium text-slate-600 mb-1">Teknisi / PJ</label>
+                  <label className="block text-[11px] font-medium text-slate-600 mb-1">Nama Teknisi / PJ</label>
                   <input
                     type="text"
                     value={repairTech}
                     onChange={(e) => setRepairTech(e.target.value)}
                     className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-800 outline-none focus:border-purple-500"
-                    placeholder="Contoh: Pak Dede / Tim IT"
+                    placeholder="Contoh: Pak Joko"
+                    required
                   />
                 </div>
               </div>
+
+              {/* Quick Tech Selector Buttons */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] text-slate-500">Pilihan Cepat:</span>
+                {["Pak Joko", "Tim IT Al-Aqsyar", "Vendor Luar"].map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setRepairTech(t)}
+                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border cursor-pointer ${
+                      repairTech.startsWith(t)
+                        ? "bg-purple-600 text-white border-purple-600"
+                        : "bg-white text-slate-700 border-slate-200 hover:bg-slate-50"
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+
               <div>
-                <label className="block text-[11px] font-medium text-slate-600 mb-1">Detail Perbaikan *</label>
+                <label className="block text-[11px] font-medium text-slate-600 mb-1">Tindakan / Detail Perbaikan *</label>
                 <input
                   type="text"
                   value={repairDesc}
                   onChange={(e) => setRepairDesc(e.target.value)}
                   className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-800 outline-none focus:border-purple-500"
-                  placeholder="Contoh: Ganti Thermal Paste & Power Supply 500W"
+                  placeholder="Contoh: Ganti Power Supply 500W &amp; Install Ulang Windows"
                   required
                 />
               </div>
-              <div>
-                <label className="block text-[11px] font-medium text-slate-600 mb-1">Biaya (Opsional)</label>
-                <input
-                  type="text"
-                  value={repairCost}
-                  onChange={(e) => setRepairCost(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-800 outline-none focus:border-purple-500"
-                  placeholder="Rp 250.000 / -"
-                />
+
+              {/* Preset Tindakan Umum */}
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] text-slate-500">Pilihan Cepat:</span>
+                {[
+                  "Ganti Thermal Paste & Bersihkan Debu",
+                  "Ganti Power Supply",
+                  "Install Ulang Windows & Driver",
+                  "Ganti / Tambah RAM",
+                  "Ganti SSD / Harddisk",
+                ].map((act) => (
+                  <button
+                    key={act}
+                    type="button"
+                    onClick={() => setRepairDesc(act)}
+                    className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-700 hover:bg-purple-50 hover:text-purple-700 cursor-pointer"
+                  >
+                    {act}
+                  </button>
+                ))}
               </div>
-              <div className="flex items-center justify-end gap-2 pt-1">
+
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-600 mb-1">Biaya (Opsional)</label>
+                  <input
+                    type="text"
+                    value={repairCost}
+                    onChange={(e) => setRepairCost(e.target.value)}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-800 outline-none focus:border-purple-500"
+                    placeholder="Rp 250.000 / -"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-600 mb-1">Status Kondisi Setelah Servis</label>
+                  <select
+                    value={repairKondisi}
+                    onChange={(e) => setRepairKondisi(e.target.value)}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-purple-500"
+                  >
+                    <option value="Baik">Kondisi Baik (Selesai/Siap Pakai)</option>
+                    <option value="Rusak Ringan">Rusak Ringan (Masih Diproses)</option>
+                    <option value="Rusak Berat">Rusak Berat (Tidak Bisa Diperbaiki)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setIsAddingRepair(false)}
-                  className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                  className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-purple-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-purple-700 shadow-xs"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-purple-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-purple-700 shadow-xs cursor-pointer"
                 >
                   <CheckCircle2 className="size-3.5" />
-                  <span>Simpan Catatan</span>
+                  <span>Simpan &amp; Perbarui Status Barang</span>
                 </button>
               </div>
             </form>

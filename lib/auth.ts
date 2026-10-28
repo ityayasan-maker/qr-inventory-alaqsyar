@@ -41,11 +41,14 @@ export function loginAdmin(usernameInput: string, passwordInput: string): { succ
     return { success: true, session }
   }
 
-  // 2. Admin Biasa Access (supports AQSYAR1999 or ITYAYASAN1999 for flexibility)
-  if ((cleanUser === "admin" || cleanUser === "admin@alaqsyar.sch.id") && (cleanPass === "AQSYAR1999" || cleanPass === "ITYAYASAN1999")) {
+  // 2. Admin Biasa Access (supports AQSYAR1999 or ITYAYASAN1999 for flexibility, including username 'pakjoko')
+  if (
+    (cleanUser === "admin" || cleanUser === "pakjoko" || cleanUser === "joko" || cleanUser === "admin@alaqsyar.sch.id") &&
+    (cleanPass === "AQSYAR1999" || cleanPass === "ITYAYASAN1999")
+  ) {
     const session: UserSession = {
-      username: "admin",
-      name: "Admin Staff IT/GA",
+      username: cleanUser,
+      name: cleanUser.includes("joko") ? "Pak Joko (Teknisi IT)" : "Admin Staff IT/GA",
       role: "admin",
       loggedInAt: Date.now(),
     }

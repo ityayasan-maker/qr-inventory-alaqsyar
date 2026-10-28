@@ -28,6 +28,10 @@ import {
   User,
   Wrench,
   ShieldAlert,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  FileText,
 } from "lucide-react"
 import {
   inventory as defaultRawInventory,
@@ -51,7 +55,11 @@ import { ImportModal } from "@/components/import-modal"
 import { LoginModal } from "@/components/login-modal"
 import { RoomModal } from "@/components/room-modal"
 import { MasterDataModal } from "@/components/master-data-modal"
+import { ReportModal } from "@/components/report-modal"
 import { exportToExcel } from "@/lib/excel-utils"
+
+type SortField = "type" | "kode" | "kategori" | "jurusan" | "namaPc" | "spesifikasi" | "repairCount" | "lokasi" | "kondisi"
+type SortOrder = "asc" | "desc"
 
 export function InventoryDashboard() {
   const [items, setItems] = useState<InventoryItem[]>(defaultRawInventory)
@@ -65,7 +73,12 @@ export function InventoryDashboard() {
   const [unitFilter, setUnitFilter] = useState<string>("all")
   const [kategoriFilter, setKategoriFilter] = useState<string>("all")
   const [ruanganFilter, setRuanganFilter] = useState<string>("all")
+  const [kondisiFilter, setKondisiFilter] = useState<string>("all")
   const [query, setQuery] = useState("")
+
+  // Sorting
+  const [sortField, setSortField] = useState<SortField | null>(null)
+  const [sortOrder, setSortOrder] = useState<SortOrder>("asc")
 
   // Modals
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -73,6 +86,7 @@ export function InventoryDashboard() {
   const [isLoginOpen, setIsLoginOpen] = useState(false)
   const [isRoomOpen, setIsRoomOpen] = useState(false)
   const [isMasterDataOpen, setIsMasterDataOpen] = useState(false)
+  const [isReportOpen, setIsReportOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null)
   const [deletingItem, setDeletingItem] = useState<InventoryItem | null>(null)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
@@ -153,8 +167,8 @@ export function InventoryDashboard() {
     }
   }
 
-  // Filtered items
-  const filtered = useMemo(() => {
+  // Base filtered items (sebelum filter kondisi) untuk menghitung statistik kartu
+  const baseFiltered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return items.filter((i) => {
       const typeOfItem = getItemType(i)
@@ -189,7 +203,83 @@ export function InventoryDashboard() {
     })
   }, [items, itemTypeTab, unitFilter, kategoriFilter, ruanganFilter, query])
 
-  const stats = useMemo(() => getStats(filtered), [filtered])
+  const stats = useMemo(() => getStats(baseFiltered), [baseFiltered])
+
+  // Filtered items (termasuk filter kondisi)
+  const filtered = useMemo(() => {
+    if (kondisiFilter === "all") return baseFiltered
+    return baseFiltered.filter((i) => kondisiStatus(i.kondisi) === kondisiFilter)
+  }, [baseFiltered, kondisiFilter])
+
+  // Sort handler
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      if (sortOrder === "asc") {
+        setSortOrder("desc")
+      } else {
+        setSortField(null)
+        setSortOrder("asc")
+      }
+    } else {
+      setSortField(field)
+      setSortOrder(field === "repairCount" ? "desc" : "asc")
+    }
+  }
+
+  // Sorted items
+  const sorted = useMemo(() => {
+    if (!sortField) return filtered
+    return [...filtered].sort((a, b) => {
+      let aVal: string | number = ""
+      let bVal: string | number = ""
+
+      switch (sortField) {
+        case "type":
+          aVal = getItemType(a)
+          bVal = getItemType(b)
+          break
+        case "kode":
+          aVal = a.kode || ""
+          bVal = b.kode || ""
+          break
+        case "kategori":
+          aVal = getCategoryFromItem(a)
+          bVal = getCategoryFromItem(b)
+          break
+        case "jurusan":
+          aVal = a.jurusan || ""
+          bVal = b.jurusan || ""
+          break
+        case "namaPc":
+          aVal = a.namaPc || ""
+          bVal = b.namaPc || ""
+          break
+        case "spesifikasi":
+          aVal = getItemType(a) === "NON_IT" ? a.merekModel || a.bahanWarna || "" : a.prosesor || ""
+          bVal = getItemType(b) === "NON_IT" ? b.merekModel || b.bahanWarna || "" : b.prosesor || ""
+          break
+        case "repairCount":
+          aVal = a.repairLogs?.length || 0
+          bVal = b.repairLogs?.length || 0
+          break
+        case "lokasi":
+          aVal = a.lokasi || ""
+          bVal = b.lokasi || ""
+          break
+        case "kondisi":
+          aVal = kondisiStatus(a.kondisi)
+          bVal = kondisiStatus(b.kondisi)
+          break
+      }
+
+      if (typeof aVal === "number" && typeof bVal === "number") {
+        return sortOrder === "asc" ? aVal - bVal : bVal - aVal
+      }
+      return sortOrder === "asc"
+        ? String(aVal).localeCompare(String(bVal), "id", { numeric: true })
+        : String(bVal).localeCompare(String(aVal), "id", { numeric: true })
+    })
+  }, [filtered, sortField, sortOrder])
 
   // CRUD Operations
   const handleSaveItem = async (itemToSave: InventoryItem) => {
@@ -353,7 +443,7 @@ export function InventoryDashboard() {
           </div>
         </div>
 
-        <StatCards {...stats} />
+        <StatCards {...stats} selectedKondisi={kondisiFilter} onSelectKondisi={setKondisiFilter} />
       </div>
 
       {/* ITEM TYPE TABS (Semua, Barang IT, Barang Non-IT) */}
@@ -448,10 +538,29 @@ export function InventoryDashboard() {
               ))}
             </select>
           </div>
+
+          {/* Kondisi Dropdown Filter (Update Poin 1) */}
+          <div className="relative inline-flex items-center">
+            <CheckCircle2 className="pointer-events-none absolute left-2.5 size-3.5 text-muted-foreground" />
+            <select
+              value={kondisiFilter}
+              onChange={(e) => setKondisiFilter(e.target.value)}
+              className={`rounded-full border py-1.5 pl-8 pr-3 text-xs font-semibold outline-none shadow-sm transition-all ${
+                kondisiFilter !== "all"
+                  ? "border-purple-500 bg-purple-50 text-purple-800 ring-2 ring-purple-500/20 font-bold"
+                  : "border-border bg-card text-foreground focus:border-violet-500"
+              }`}
+            >
+              <option value="all">Semua Kondisi</option>
+              <option value="baik">Kondisi Baik</option>
+              <option value="bermasalah">Rusak Ringan</option>
+              <option value="mati">Rusak Berat</option>
+            </select>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative w-full sm:w-56">
+          <div className="relative w-full sm:w-52">
             <Search
               className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
               aria-hidden
@@ -465,6 +574,16 @@ export function InventoryDashboard() {
               aria-label="Cari inventaris"
             />
           </div>
+
+          <button
+            type="button"
+            onClick={() => setIsReportOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-3 py-2 text-xs font-bold text-purple-700 transition-all hover:bg-purple-100 shadow-xs cursor-pointer"
+            title="Pusat Cetak Laporan & Rekapitulasi Aset Resmi (Update Poin 4)"
+          >
+            <FileText className="size-3.5" />
+            <span>Laporan</span>
+          </button>
 
           <button
             type="button"
@@ -522,14 +641,42 @@ export function InventoryDashboard() {
         </div>
       </div>
 
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <p>
-          Menampilkan <span className="font-semibold text-foreground">{filtered.length}</span> barang / device
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2 flex-wrap">
+          <p>
+            Menampilkan <span className="font-semibold text-foreground">{sorted.length}</span> barang / device
+          </p>
+          {kondisiFilter !== "all" && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 border border-purple-200 px-2.5 py-0.5 text-xs font-bold text-purple-800">
+              Kondisi: {kondisiFilter === "baik" ? "Baik" : kondisiFilter === "bermasalah" ? "Rusak Ringan" : "Rusak Berat"}
+              <button
+                type="button"
+                onClick={() => setKondisiFilter("all")}
+                className="ml-1 hover:text-purple-950 font-black cursor-pointer"
+                title="Hapus filter kondisi"
+              >
+                &times;
+              </button>
+            </span>
+          )}
+          {sortField && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-xs font-medium text-slate-700">
+              Urut: <strong className="capitalize">{sortField}</strong> ({sortOrder === "asc" ? "A-Z / Terendah" : "Z-A / Tertinggi"})
+              <button
+                type="button"
+                onClick={() => setSortField(null)}
+                className="ml-1 hover:text-slate-900 font-black cursor-pointer"
+                title="Reset urutan"
+              >
+                &times;
+              </button>
+            </span>
+          )}
+        </div>
         <button
           type="button"
           onClick={handleResetData}
-          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-rose-600"
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-rose-600 cursor-pointer"
           title="Reset ke data default (Super-Admin)"
         >
           <RefreshCw className="size-3.5" />
@@ -537,26 +684,144 @@ export function InventoryDashboard() {
         </button>
       </div>
 
-      {/* Table for large screens with Edit/Delete Actions */}
+      {/* Table for large screens with Edit/Delete Actions (Sortable Headers - Update Poin 2) */}
       <div className="hidden overflow-hidden rounded-xl border border-border bg-card shadow-sm lg:block">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left text-sm">
-            <thead className="bg-slate-100/80 text-xs uppercase tracking-wide text-slate-600 font-semibold border-b border-border">
+            <thead className="bg-slate-100/80 text-xs uppercase tracking-wide text-slate-600 font-semibold border-b border-border select-none">
               <tr>
-                <th className="px-4 py-3 font-semibold">Jenis</th>
-                <th className="px-4 py-3 font-semibold">Kode Inventaris</th>
-                <th className="px-4 py-3 font-semibold">Kategori</th>
-                <th className="px-4 py-3 font-semibold">Unit</th>
-                <th className="px-4 py-3 font-semibold">Nama Barang / Device</th>
-                <th className="px-4 py-3 font-semibold">Merek / Spesifikasi</th>
-                <th className="px-4 py-3 font-semibold">Riwayat Perbaikan</th>
-                <th className="px-4 py-3 font-semibold">Lokasi Ruangan</th>
-                <th className="px-4 py-3 font-semibold">Kondisi</th>
+                <th className="px-4 py-3 font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => handleSort("type")}
+                    className="flex items-center gap-1 text-slate-700 hover:text-purple-700 cursor-pointer transition-colors"
+                  >
+                    <span>Jenis</span>
+                    {sortField === "type" ? (
+                      sortOrder === "asc" ? <ArrowUp className="size-3 text-purple-600" /> : <ArrowDown className="size-3 text-purple-600" />
+                    ) : (
+                      <ArrowUpDown className="size-3 opacity-40" />
+                    )}
+                  </button>
+                </th>
+                <th className="px-4 py-3 font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => handleSort("kode")}
+                    className="flex items-center gap-1 text-slate-700 hover:text-purple-700 cursor-pointer transition-colors"
+                  >
+                    <span>Kode Inventaris</span>
+                    {sortField === "kode" ? (
+                      sortOrder === "asc" ? <ArrowUp className="size-3 text-purple-600" /> : <ArrowDown className="size-3 text-purple-600" />
+                    ) : (
+                      <ArrowUpDown className="size-3 opacity-40" />
+                    )}
+                  </button>
+                </th>
+                <th className="px-4 py-3 font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => handleSort("kategori")}
+                    className="flex items-center gap-1 text-slate-700 hover:text-purple-700 cursor-pointer transition-colors"
+                  >
+                    <span>Kategori</span>
+                    {sortField === "kategori" ? (
+                      sortOrder === "asc" ? <ArrowUp className="size-3 text-purple-600" /> : <ArrowDown className="size-3 text-purple-600" />
+                    ) : (
+                      <ArrowUpDown className="size-3 opacity-40" />
+                    )}
+                  </button>
+                </th>
+                <th className="px-4 py-3 font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => handleSort("jurusan")}
+                    className="flex items-center gap-1 text-slate-700 hover:text-purple-700 cursor-pointer transition-colors"
+                  >
+                    <span>Unit</span>
+                    {sortField === "jurusan" ? (
+                      sortOrder === "asc" ? <ArrowUp className="size-3 text-purple-600" /> : <ArrowDown className="size-3 text-purple-600" />
+                    ) : (
+                      <ArrowUpDown className="size-3 opacity-40" />
+                    )}
+                  </button>
+                </th>
+                <th className="px-4 py-3 font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => handleSort("namaPc")}
+                    className="flex items-center gap-1 text-slate-700 hover:text-purple-700 cursor-pointer transition-colors"
+                  >
+                    <span>Nama Barang / Device</span>
+                    {sortField === "namaPc" ? (
+                      sortOrder === "asc" ? <ArrowUp className="size-3 text-purple-600" /> : <ArrowDown className="size-3 text-purple-600" />
+                    ) : (
+                      <ArrowUpDown className="size-3 opacity-40" />
+                    )}
+                  </button>
+                </th>
+                <th className="px-4 py-3 font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => handleSort("spesifikasi")}
+                    className="flex items-center gap-1 text-slate-700 hover:text-purple-700 cursor-pointer transition-colors"
+                  >
+                    <span>Merek / Spesifikasi</span>
+                    {sortField === "spesifikasi" ? (
+                      sortOrder === "asc" ? <ArrowUp className="size-3 text-purple-600" /> : <ArrowDown className="size-3 text-purple-600" />
+                    ) : (
+                      <ArrowUpDown className="size-3 opacity-40" />
+                    )}
+                  </button>
+                </th>
+                <th className="px-4 py-3 font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => handleSort("repairCount")}
+                    className="flex items-center gap-1 text-slate-700 hover:text-purple-700 cursor-pointer transition-colors"
+                    title="Urutkan frekuensi perbaikan terbanyak/tersedikit"
+                  >
+                    <span>Riwayat Perbaikan</span>
+                    {sortField === "repairCount" ? (
+                      sortOrder === "asc" ? <ArrowUp className="size-3 text-purple-600" /> : <ArrowDown className="size-3 text-purple-600" />
+                    ) : (
+                      <ArrowUpDown className="size-3 opacity-40" />
+                    )}
+                  </button>
+                </th>
+                <th className="px-4 py-3 font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => handleSort("lokasi")}
+                    className="flex items-center gap-1 text-slate-700 hover:text-purple-700 cursor-pointer transition-colors"
+                  >
+                    <span>Lokasi Ruangan</span>
+                    {sortField === "lokasi" ? (
+                      sortOrder === "asc" ? <ArrowUp className="size-3 text-purple-600" /> : <ArrowDown className="size-3 text-purple-600" />
+                    ) : (
+                      <ArrowUpDown className="size-3 opacity-40" />
+                    )}
+                  </button>
+                </th>
+                <th className="px-4 py-3 font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => handleSort("kondisi")}
+                    className="flex items-center gap-1 text-slate-700 hover:text-purple-700 cursor-pointer transition-colors"
+                  >
+                    <span>Kondisi</span>
+                    {sortField === "kondisi" ? (
+                      sortOrder === "asc" ? <ArrowUp className="size-3 text-purple-600" /> : <ArrowDown className="size-3 text-purple-600" />
+                    ) : (
+                      <ArrowUpDown className="size-3 opacity-40" />
+                    )}
+                  </button>
+                </th>
                 <th className="px-4 py-3 font-semibold text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((item) => {
+              {sorted.map((item) => {
                 const itemType = getItemType(item)
                 const status = kondisiStatus(item.kondisi)
                 const meta = kondisiMeta[status]
@@ -616,7 +881,7 @@ export function InventoryDashboard() {
                               setIsFormOpen(true)
                             })
                           }
-                          className="rounded-md p-1.5 text-slate-500 hover:bg-violet-100 hover:text-violet-700 transition-colors"
+                          className="rounded-md p-1.5 text-slate-500 hover:bg-violet-100 hover:text-violet-700 transition-colors cursor-pointer"
                           title="Edit Barang"
                         >
                           <Pencil className="size-4" />
@@ -624,7 +889,7 @@ export function InventoryDashboard() {
                         <button
                           type="button"
                           onClick={() => requireSuperAdmin(() => setDeletingItem(item))}
-                          className="rounded-md p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
+                          className="rounded-md p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer"
                           title="Hapus Barang (Super Admin)"
                         >
                           <Trash2 className="size-4" />
@@ -641,7 +906,7 @@ export function InventoryDashboard() {
 
       {/* Cards for small screens with Edit/Delete Actions */}
       <div className="grid gap-3 sm:grid-cols-2 lg:hidden">
-        {filtered.map((item) => (
+        {sorted.map((item) => (
           <InventoryCard
             key={item.kode}
             item={item}
@@ -656,11 +921,21 @@ export function InventoryDashboard() {
         ))}
       </div>
 
-      {filtered.length === 0 && (
+      {sorted.length === 0 && (
         <div className="rounded-xl border border-dashed border-border py-12 text-center text-muted-foreground bg-card">
           Tidak ada barang yang cocok dengan pencarian / filter.
         </div>
       )}
+
+      {/* Executive Report Center Modal (Update Poin 4) */}
+      <ReportModal
+        isOpen={isReportOpen}
+        onClose={() => setIsReportOpen(false)}
+        items={items}
+        rooms={rooms}
+        categories={categories}
+        units={units}
+      />
 
       {/* Master Data Management Modal */}
       <MasterDataModal
