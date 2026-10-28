@@ -485,101 +485,29 @@ export function InventoryDashboard() {
         </button>
       </div>
 
-      {/* Toolbar: Filters, Search, CRUD Actions */}
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Unit Dropdown Filter */}
-          <div className="relative inline-flex items-center">
-            <Building2 className="pointer-events-none absolute left-2.5 size-3.5 text-muted-foreground" />
-            <select
-              value={unitFilter}
-              onChange={(e) => setUnitFilter(e.target.value)}
-              className="rounded-full border border-border bg-card py-1.5 pl-8 pr-3 text-xs font-semibold text-foreground outline-none focus:border-violet-500 shadow-sm"
-            >
-              <option value="all">Semua Unit / Jurusan</option>
-              {units.map((u) => (
-                <option key={u.id} value={u.code}>
-                  {u.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Kategori Dropdown Filter */}
-          <div className="relative inline-flex items-center">
-            <Filter className="pointer-events-none absolute left-2.5 size-3.5 text-muted-foreground" />
-            <select
-              value={kategoriFilter}
-              onChange={(e) => setKategoriFilter(e.target.value)}
-              className="rounded-full border border-border bg-card py-1.5 pl-8 pr-3 text-xs font-semibold text-foreground outline-none focus:border-violet-500 shadow-sm"
-            >
-              <option value="all">Semua Kategori</option>
-              {categories.map((k) => (
-                <option key={k.id} value={k.code}>
-                  [{k.code}] {k.name} ({k.type})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Ruangan Dropdown Filter */}
-          <div className="relative inline-flex items-center">
-            <MapPin className="pointer-events-none absolute left-2.5 size-3.5 text-muted-foreground" />
-            <select
-              value={ruanganFilter}
-              onChange={(e) => setRuanganFilter(e.target.value)}
-              className="rounded-full border border-border bg-card py-1.5 pl-8 pr-3 text-xs font-semibold text-foreground outline-none focus:border-violet-500 shadow-sm"
-            >
-              <option value="all">Semua Ruangan</option>
-              {rooms.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Kondisi Dropdown Filter (Update Poin 1) */}
-          <div className="relative inline-flex items-center">
-            <CheckCircle2 className="pointer-events-none absolute left-2.5 size-3.5 text-muted-foreground" />
-            <select
-              value={kondisiFilter}
-              onChange={(e) => setKondisiFilter(e.target.value)}
-              className={`rounded-full border py-1.5 pl-8 pr-3 text-xs font-semibold outline-none shadow-sm transition-all ${
-                kondisiFilter !== "all"
-                  ? "border-purple-500 bg-purple-50 text-purple-800 ring-2 ring-purple-500/20 font-bold"
-                  : "border-border bg-card text-foreground focus:border-violet-500"
-              }`}
-            >
-              <option value="all">Semua Kondisi</option>
-              <option value="baik">Kondisi Baik</option>
-              <option value="bermasalah">Rusak Ringan</option>
-              <option value="mati">Rusak Berat</option>
-            </select>
-          </div>
+      {/* Toolbar: Search, CRUD Actions & Tools */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative w-full sm:w-80">
+          <Search
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden
+          />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Cari kode, nama, spesifikasi..."
+            className="w-full rounded-lg border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-violet-500 shadow-sm"
+            aria-label="Cari inventaris"
+          />
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative w-full sm:w-52">
-            <Search
-              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-              aria-hidden
-            />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Cari kode, barang, spesifikasi..."
-              className="w-full rounded-lg border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-violet-500 shadow-sm"
-              aria-label="Cari inventaris"
-            />
-          </div>
-
           <button
             type="button"
             onClick={() => setIsReportOpen(true)}
             className="inline-flex items-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-3 py-2 text-xs font-bold text-purple-700 transition-all hover:bg-purple-100 shadow-xs cursor-pointer"
-            title="Pusat Cetak Laporan & Rekapitulasi Aset Resmi (Update Poin 4)"
+            title="Pusat Cetak Laporan & Rekapitulasi Aset Resmi"
           >
             <FileText className="size-3.5" />
             <span>Laporan</span>
@@ -646,6 +574,58 @@ export function InventoryDashboard() {
           <p>
             Menampilkan <span className="font-semibold text-foreground">{sorted.length}</span> barang / device
           </p>
+          {itemTypeTab !== "all" && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-xs font-semibold text-slate-800">
+              Jenis: {itemTypeTab === "IT" ? "IT" : "Non-IT"}
+              <button
+                type="button"
+                onClick={() => setItemTypeTab("all")}
+                className="ml-1 hover:text-slate-950 font-black cursor-pointer"
+                title="Hapus filter jenis"
+              >
+                &times;
+              </button>
+            </span>
+          )}
+          {kategoriFilter !== "all" && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-xs font-semibold text-slate-800">
+              Kategori: {kategoriFilter}
+              <button
+                type="button"
+                onClick={() => setKategoriFilter("all")}
+                className="ml-1 hover:text-slate-950 font-black cursor-pointer"
+                title="Hapus filter kategori"
+              >
+                &times;
+              </button>
+            </span>
+          )}
+          {unitFilter !== "all" && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-xs font-semibold text-slate-800">
+              Unit: {units.find((u) => u.code === unitFilter)?.name || unitFilter}
+              <button
+                type="button"
+                onClick={() => setUnitFilter("all")}
+                className="ml-1 hover:text-slate-950 font-black cursor-pointer"
+                title="Hapus filter unit"
+              >
+                &times;
+              </button>
+            </span>
+          )}
+          {ruanganFilter !== "all" && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-xs font-semibold text-slate-800">
+              Ruangan: {ruanganFilter}
+              <button
+                type="button"
+                onClick={() => setRuanganFilter("all")}
+                className="ml-1 hover:text-slate-950 font-black cursor-pointer"
+                title="Hapus filter ruangan"
+              >
+                &times;
+              </button>
+            </span>
+          )}
           {kondisiFilter !== "all" && (
             <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 border border-purple-200 px-2.5 py-0.5 text-xs font-bold text-purple-800">
               Kondisi: {kondisiFilter === "baik" ? "Baik" : kondisiFilter === "bermasalah" ? "Rusak Ringan" : "Rusak Berat"}
@@ -672,6 +652,21 @@ export function InventoryDashboard() {
               </button>
             </span>
           )}
+          {(itemTypeTab !== "all" || kategoriFilter !== "all" || unitFilter !== "all" || ruanganFilter !== "all" || kondisiFilter !== "all") && (
+            <button
+              type="button"
+              onClick={() => {
+                setItemTypeTab("all")
+                setKategoriFilter("all")
+                setUnitFilter("all")
+                setRuanganFilter("all")
+                setKondisiFilter("all")
+              }}
+              className="text-xs text-rose-600 hover:text-rose-800 font-bold underline cursor-pointer"
+            >
+              Hapus Semua Filter
+            </button>
+          )}
         </div>
         <button
           type="button"
@@ -684,140 +679,280 @@ export function InventoryDashboard() {
         </button>
       </div>
 
-      {/* Table for large screens with Edit/Delete Actions (Sortable Headers - Update Poin 2) */}
+      {/* Table for large screens with Header Filters & Sorting */}
       <div className="hidden overflow-hidden rounded-xl border border-border bg-card shadow-sm lg:block">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left text-sm">
-            <thead className="bg-slate-100/80 text-xs uppercase tracking-wide text-slate-600 font-semibold border-b border-border select-none">
+            <thead className="bg-slate-100/90 text-xs text-slate-700 font-semibold border-b border-border select-none">
               <tr>
-                <th className="px-4 py-3 font-semibold">
-                  <button
-                    type="button"
-                    onClick={() => handleSort("type")}
-                    className="flex items-center gap-1 text-slate-700 hover:text-purple-700 cursor-pointer transition-colors"
-                  >
-                    <span>Jenis</span>
-                    {sortField === "type" ? (
-                      sortOrder === "asc" ? <ArrowUp className="size-3 text-purple-600" /> : <ArrowDown className="size-3 text-purple-600" />
-                    ) : (
-                      <ArrowUpDown className="size-3 opacity-40" />
-                    )}
-                  </button>
+                {/* 1. JENIS */}
+                <th className="px-3 py-2.5 font-semibold align-top w-28">
+                  <div className="flex flex-col gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleSort("type")}
+                      className="flex items-center gap-1 text-slate-700 hover:text-purple-700 cursor-pointer transition-colors"
+                      title="Urutkan Jenis"
+                    >
+                      <span>Jenis</span>
+                      {sortField === "type" ? (
+                        sortOrder === "asc" ? <ArrowUp className="size-3 text-purple-600" /> : <ArrowDown className="size-3 text-purple-600" />
+                      ) : (
+                        <ArrowUpDown className="size-3 opacity-40" />
+                      )}
+                    </button>
+                    <select
+                      value={itemTypeTab}
+                      onChange={(e) => setItemTypeTab(e.target.value as ItemTypeTab)}
+                      className={`w-full rounded border py-1 px-1.5 text-[11px] font-medium outline-none transition-colors ${
+                        itemTypeTab !== "all"
+                          ? "border-purple-500 bg-purple-50 text-purple-900 font-bold"
+                          : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                      }`}
+                    >
+                      <option value="all">Semua</option>
+                      <option value="IT">IT</option>
+                      <option value="NON_IT">Non-IT</option>
+                    </select>
+                  </div>
                 </th>
-                <th className="px-4 py-3 font-semibold">
-                  <button
-                    type="button"
-                    onClick={() => handleSort("kode")}
-                    className="flex items-center gap-1 text-slate-700 hover:text-purple-700 cursor-pointer transition-colors"
-                  >
-                    <span>Kode Inventaris</span>
-                    {sortField === "kode" ? (
-                      sortOrder === "asc" ? <ArrowUp className="size-3 text-purple-600" /> : <ArrowDown className="size-3 text-purple-600" />
-                    ) : (
-                      <ArrowUpDown className="size-3 opacity-40" />
-                    )}
-                  </button>
+
+                {/* 2. KODE INVENTARIS */}
+                <th className="px-3 py-2.5 font-semibold align-top">
+                  <div className="flex flex-col gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleSort("kode")}
+                      className="flex items-center gap-1 text-slate-700 hover:text-purple-700 cursor-pointer transition-colors whitespace-nowrap"
+                      title="Urutkan Kode"
+                    >
+                      <span>Kode Inventaris</span>
+                      {sortField === "kode" ? (
+                        sortOrder === "asc" ? <ArrowUp className="size-3 text-purple-600" /> : <ArrowDown className="size-3 text-purple-600" />
+                      ) : (
+                        <ArrowUpDown className="size-3 opacity-40" />
+                      )}
+                    </button>
+                  </div>
                 </th>
-                <th className="px-4 py-3 font-semibold">
-                  <button
-                    type="button"
-                    onClick={() => handleSort("kategori")}
-                    className="flex items-center gap-1 text-slate-700 hover:text-purple-700 cursor-pointer transition-colors"
-                  >
-                    <span>Kategori</span>
-                    {sortField === "kategori" ? (
-                      sortOrder === "asc" ? <ArrowUp className="size-3 text-purple-600" /> : <ArrowDown className="size-3 text-purple-600" />
-                    ) : (
-                      <ArrowUpDown className="size-3 opacity-40" />
-                    )}
-                  </button>
+
+                {/* 3. KATEGORI */}
+                <th className="px-3 py-2.5 font-semibold align-top min-w-[130px]">
+                  <div className="flex flex-col gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleSort("kategori")}
+                      className="flex items-center gap-1 text-slate-700 hover:text-purple-700 cursor-pointer transition-colors"
+                      title="Urutkan Kategori"
+                    >
+                      <span>Kategori</span>
+                      {sortField === "kategori" ? (
+                        sortOrder === "asc" ? <ArrowUp className="size-3 text-purple-600" /> : <ArrowDown className="size-3 text-purple-600" />
+                      ) : (
+                        <ArrowUpDown className="size-3 opacity-40" />
+                      )}
+                    </button>
+                    <select
+                      value={kategoriFilter}
+                      onChange={(e) => setKategoriFilter(e.target.value)}
+                      className={`w-full rounded border py-1 px-1.5 text-[11px] font-medium outline-none transition-colors ${
+                        kategoriFilter !== "all"
+                          ? "border-purple-500 bg-purple-50 text-purple-900 font-bold"
+                          : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                      }`}
+                    >
+                      <option value="all">Semua Kategori</option>
+                      {categories.map((k) => (
+                        <option key={k.id} value={k.code}>
+                          [{k.code}] {k.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </th>
-                <th className="px-4 py-3 font-semibold">
-                  <button
-                    type="button"
-                    onClick={() => handleSort("jurusan")}
-                    className="flex items-center gap-1 text-slate-700 hover:text-purple-700 cursor-pointer transition-colors"
-                  >
-                    <span>Unit</span>
-                    {sortField === "jurusan" ? (
-                      sortOrder === "asc" ? <ArrowUp className="size-3 text-purple-600" /> : <ArrowDown className="size-3 text-purple-600" />
-                    ) : (
-                      <ArrowUpDown className="size-3 opacity-40" />
-                    )}
-                  </button>
+
+                {/* 4. UNIT */}
+                <th className="px-3 py-2.5 font-semibold align-top min-w-[130px]">
+                  <div className="flex flex-col gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleSort("jurusan")}
+                      className="flex items-center gap-1 text-slate-700 hover:text-purple-700 cursor-pointer transition-colors"
+                      title="Urutkan Unit"
+                    >
+                      <span>Unit / Jurusan</span>
+                      {sortField === "jurusan" ? (
+                        sortOrder === "asc" ? <ArrowUp className="size-3 text-purple-600" /> : <ArrowDown className="size-3 text-purple-600" />
+                      ) : (
+                        <ArrowUpDown className="size-3 opacity-40" />
+                      )}
+                    </button>
+                    <select
+                      value={unitFilter}
+                      onChange={(e) => setUnitFilter(e.target.value)}
+                      className={`w-full rounded border py-1 px-1.5 text-[11px] font-medium outline-none transition-colors ${
+                        unitFilter !== "all"
+                          ? "border-purple-500 bg-purple-50 text-purple-900 font-bold"
+                          : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                      }`}
+                    >
+                      <option value="all">Semua Unit</option>
+                      {units.map((u) => (
+                        <option key={u.id} value={u.code}>
+                          {u.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </th>
-                <th className="px-4 py-3 font-semibold">
-                  <button
-                    type="button"
-                    onClick={() => handleSort("namaPc")}
-                    className="flex items-center gap-1 text-slate-700 hover:text-purple-700 cursor-pointer transition-colors"
-                  >
-                    <span>Nama Barang / Device</span>
-                    {sortField === "namaPc" ? (
-                      sortOrder === "asc" ? <ArrowUp className="size-3 text-purple-600" /> : <ArrowDown className="size-3 text-purple-600" />
-                    ) : (
-                      <ArrowUpDown className="size-3 opacity-40" />
-                    )}
-                  </button>
+
+                {/* 5. NAMA BARANG */}
+                <th className="px-3 py-2.5 font-semibold align-top">
+                  <div className="flex flex-col gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleSort("namaPc")}
+                      className="flex items-center gap-1 text-slate-700 hover:text-purple-700 cursor-pointer transition-colors whitespace-nowrap"
+                      title="Urutkan Nama Barang"
+                    >
+                      <span>Nama Barang</span>
+                      {sortField === "namaPc" ? (
+                        sortOrder === "asc" ? <ArrowUp className="size-3 text-purple-600" /> : <ArrowDown className="size-3 text-purple-600" />
+                      ) : (
+                        <ArrowUpDown className="size-3 opacity-40" />
+                      )}
+                    </button>
+                  </div>
                 </th>
-                <th className="px-4 py-3 font-semibold">
-                  <button
-                    type="button"
-                    onClick={() => handleSort("spesifikasi")}
-                    className="flex items-center gap-1 text-slate-700 hover:text-purple-700 cursor-pointer transition-colors"
-                  >
-                    <span>Merek / Spesifikasi</span>
-                    {sortField === "spesifikasi" ? (
-                      sortOrder === "asc" ? <ArrowUp className="size-3 text-purple-600" /> : <ArrowDown className="size-3 text-purple-600" />
-                    ) : (
-                      <ArrowUpDown className="size-3 opacity-40" />
-                    )}
-                  </button>
+
+                {/* 6. SPESIFIKASI */}
+                <th className="px-3 py-2.5 font-semibold align-top">
+                  <div className="flex flex-col gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleSort("spesifikasi")}
+                      className="flex items-center gap-1 text-slate-700 hover:text-purple-700 cursor-pointer transition-colors whitespace-nowrap"
+                      title="Urutkan Spesifikasi"
+                    >
+                      <span>Merek / Spesifikasi</span>
+                      {sortField === "spesifikasi" ? (
+                        sortOrder === "asc" ? <ArrowUp className="size-3 text-purple-600" /> : <ArrowDown className="size-3 text-purple-600" />
+                      ) : (
+                        <ArrowUpDown className="size-3 opacity-40" />
+                      )}
+                    </button>
+                  </div>
                 </th>
-                <th className="px-4 py-3 font-semibold">
-                  <button
-                    type="button"
-                    onClick={() => handleSort("repairCount")}
-                    className="flex items-center gap-1 text-slate-700 hover:text-purple-700 cursor-pointer transition-colors"
-                    title="Urutkan frekuensi perbaikan terbanyak/tersedikit"
-                  >
-                    <span>Riwayat Perbaikan</span>
-                    {sortField === "repairCount" ? (
-                      sortOrder === "asc" ? <ArrowUp className="size-3 text-purple-600" /> : <ArrowDown className="size-3 text-purple-600" />
-                    ) : (
-                      <ArrowUpDown className="size-3 opacity-40" />
-                    )}
-                  </button>
+
+                {/* 7. RIWAYAT PERBAIKAN */}
+                <th className="px-3 py-2.5 font-semibold align-top">
+                  <div className="flex flex-col gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleSort("repairCount")}
+                      className="flex items-center gap-1 text-slate-700 hover:text-purple-700 cursor-pointer transition-colors whitespace-nowrap"
+                      title="Urutkan frekuensi perbaikan terbanyak/tersedikit"
+                    >
+                      <span>Perbaikan</span>
+                      {sortField === "repairCount" ? (
+                        sortOrder === "asc" ? <ArrowUp className="size-3 text-purple-600" /> : <ArrowDown className="size-3 text-purple-600" />
+                      ) : (
+                        <ArrowUpDown className="size-3 opacity-40" />
+                      )}
+                    </button>
+                  </div>
                 </th>
-                <th className="px-4 py-3 font-semibold">
-                  <button
-                    type="button"
-                    onClick={() => handleSort("lokasi")}
-                    className="flex items-center gap-1 text-slate-700 hover:text-purple-700 cursor-pointer transition-colors"
-                  >
-                    <span>Lokasi Ruangan</span>
-                    {sortField === "lokasi" ? (
-                      sortOrder === "asc" ? <ArrowUp className="size-3 text-purple-600" /> : <ArrowDown className="size-3 text-purple-600" />
-                    ) : (
-                      <ArrowUpDown className="size-3 opacity-40" />
-                    )}
-                  </button>
+
+                {/* 8. LOKASI RUANGAN */}
+                <th className="px-3 py-2.5 font-semibold align-top min-w-[130px]">
+                  <div className="flex flex-col gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleSort("lokasi")}
+                      className="flex items-center gap-1 text-slate-700 hover:text-purple-700 cursor-pointer transition-colors whitespace-nowrap"
+                      title="Urutkan Ruangan"
+                    >
+                      <span>Lokasi Ruangan</span>
+                      {sortField === "lokasi" ? (
+                        sortOrder === "asc" ? <ArrowUp className="size-3 text-purple-600" /> : <ArrowDown className="size-3 text-purple-600" />
+                      ) : (
+                        <ArrowUpDown className="size-3 opacity-40" />
+                      )}
+                    </button>
+                    <select
+                      value={ruanganFilter}
+                      onChange={(e) => setRuanganFilter(e.target.value)}
+                      className={`w-full rounded border py-1 px-1.5 text-[11px] font-medium outline-none transition-colors ${
+                        ruanganFilter !== "all"
+                          ? "border-purple-500 bg-purple-50 text-purple-900 font-bold"
+                          : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                      }`}
+                    >
+                      <option value="all">Semua Ruangan</option>
+                      {rooms.map((r) => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </th>
-                <th className="px-4 py-3 font-semibold">
-                  <button
-                    type="button"
-                    onClick={() => handleSort("kondisi")}
-                    className="flex items-center gap-1 text-slate-700 hover:text-purple-700 cursor-pointer transition-colors"
-                  >
-                    <span>Kondisi</span>
-                    {sortField === "kondisi" ? (
-                      sortOrder === "asc" ? <ArrowUp className="size-3 text-purple-600" /> : <ArrowDown className="size-3 text-purple-600" />
-                    ) : (
-                      <ArrowUpDown className="size-3 opacity-40" />
-                    )}
-                  </button>
+
+                {/* 9. KONDISI */}
+                <th className="px-3 py-2.5 font-semibold align-top min-w-[120px]">
+                  <div className="flex flex-col gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleSort("kondisi")}
+                      className="flex items-center gap-1 text-slate-700 hover:text-purple-700 cursor-pointer transition-colors whitespace-nowrap"
+                      title="Urutkan Kondisi"
+                    >
+                      <span>Kondisi</span>
+                      {sortField === "kondisi" ? (
+                        sortOrder === "asc" ? <ArrowUp className="size-3 text-purple-600" /> : <ArrowDown className="size-3 text-purple-600" />
+                      ) : (
+                        <ArrowUpDown className="size-3 opacity-40" />
+                      )}
+                    </button>
+                    <select
+                      value={kondisiFilter}
+                      onChange={(e) => setKondisiFilter(e.target.value)}
+                      className={`w-full rounded border py-1 px-1.5 text-[11px] font-medium outline-none transition-colors ${
+                        kondisiFilter !== "all"
+                          ? "border-purple-500 bg-purple-50 text-purple-900 font-bold"
+                          : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                      }`}
+                    >
+                      <option value="all">Semua Kondisi</option>
+                      <option value="baik">Baik</option>
+                      <option value="bermasalah">Rusak Ringan</option>
+                      <option value="mati">Rusak Berat</option>
+                    </select>
+                  </div>
                 </th>
-                <th className="px-4 py-3 font-semibold text-right">Aksi</th>
+
+                {/* 10. AKSI */}
+                <th className="px-3 py-2.5 font-semibold align-top text-right min-w-[80px]">
+                  <div className="flex flex-col items-end gap-1.5">
+                    <span>Aksi</span>
+                    {(itemTypeTab !== "all" || kategoriFilter !== "all" || unitFilter !== "all" || ruanganFilter !== "all" || kondisiFilter !== "all") && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setItemTypeTab("all")
+                          setKategoriFilter("all")
+                          setUnitFilter("all")
+                          setRuanganFilter("all")
+                          setKondisiFilter("all")
+                        }}
+                        className="text-[10px] text-rose-600 hover:text-rose-800 font-bold underline cursor-pointer whitespace-nowrap"
+                        title="Reset semua filter kolom"
+                      >
+                        Reset Filter
+                      </button>
+                    )}
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
