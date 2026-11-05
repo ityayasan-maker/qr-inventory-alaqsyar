@@ -185,6 +185,12 @@ export function InventoryDashboard() {
       return [
         i.kode,
         i.namaPc,
+        i.noPc,
+        i.serialNumber,
+        i.macAddress,
+        i.ukuranLayar,
+        i.tipeRouter,
+        i.tipeSwitch,
         i.prosesor,
         i.keyboard,
         i.mouse,
@@ -197,6 +203,7 @@ export function InventoryDashboard() {
         i.lokasi,
         i.catatan,
       ]
+        .filter(Boolean)
         .join(" ")
         .toLowerCase()
         .includes(q)
@@ -990,9 +997,24 @@ export function InventoryDashboard() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{item.jurusan}</td>
-                    <td className="px-4 py-3 font-medium text-foreground">{item.namaPc || "-"}</td>
+                    <td className="px-4 py-3 font-medium text-foreground">
+                      <div>{item.namaPc || "-"}</div>
+                      {item.noPc && (
+                        <span className="inline-flex items-center gap-1 rounded bg-purple-100 border border-purple-200 px-1.5 py-0.5 text-[10px] font-bold text-purple-800 mt-0.5">
+                          🖥️ No PC: {item.noPc}
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-muted-foreground">
-                      {itemType === "NON_IT" ? item.merekModel || item.bahanWarna || "-" : item.prosesor || "-"}
+                      {itemType === "NON_IT"
+                        ? item.merekModel || item.bahanWarna || "-"
+                        : item.kategori === "MON"
+                        ? `${item.ukuranLayar || "Monitor"} ${item.resolusi ? `• ${item.resolusi}` : ""} ${item.serialNumber ? `(SN: ${item.serialNumber})` : ""}`
+                        : item.kategori === "RTR"
+                        ? `${item.tipeRouter || "Router"} • ${item.portLan || "4"} Port LAN`
+                        : item.kategori === "SW"
+                        ? `${item.tipeSwitch || "Switch"} • ${item.jumlahPort || "24"} Port (${item.kecepatanPort || "Gigabit"})`
+                        : item.prosesor || "-"}
                     </td>
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center gap-1 font-mono text-xs text-amber-800 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
@@ -1167,6 +1189,11 @@ function InventoryCard({
             </Link>
           </div>
           <p className="mt-1 font-semibold text-foreground">{item.namaPc || "Tanpa Nama"}</p>
+          {item.noPc && (
+            <span className="inline-flex items-center gap-1 rounded bg-purple-100 border border-purple-200 px-1.5 py-0.5 text-[10px] font-bold text-purple-800 mt-1">
+              🖥️ No PC: {item.noPc}
+            </span>
+          )}
         </div>
         <span className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-medium ${meta.className}`}>
           {meta.label}

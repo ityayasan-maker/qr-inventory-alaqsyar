@@ -22,13 +22,14 @@ export const DEFAULT_CATEGORIES: CategoryItem[] = [
   { id: "cat-cpu", code: "CPU", name: "CPU / Unit Prosesor", type: "IT", active: true },
   { id: "cat-mon", code: "MON", name: "Monitor", type: "IT", active: true },
   { id: "cat-lap", code: "LAP", name: "Laptop", type: "IT", active: true },
+  { id: "cat-rtr", code: "RTR", name: "Router", type: "IT", active: true },
+  { id: "cat-sw", code: "SW", name: "Switch", type: "IT", active: true },
   { id: "cat-key", code: "KEY", name: "Keyboard", type: "IT", active: true },
   { id: "cat-mou", code: "MOU", name: "Mouse", type: "IT", active: true },
   { id: "cat-prn", code: "PRN", name: "Printer", type: "IT", active: true },
   { id: "cat-scn", code: "SCN", name: "Scanner", type: "IT", active: true },
   { id: "cat-proj", code: "PROJ", name: "Proyektor / LCD", type: "IT", active: true },
   { id: "cat-ups", code: "UPS", name: "UPS / Stabilizer", type: "IT", active: true },
-  { id: "cat-rtr", code: "RTR", name: "Router / Perangkat Jaringan", type: "IT", active: true },
   { id: "cat-lain-it", code: "LAIN_IT", name: "Elektronik IT Lainnya", type: "IT", active: true },
 
   // Non-IT Categories (HR/GA)

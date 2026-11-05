@@ -24,6 +24,7 @@ try {
   const exportConfig = `/** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'export',
+  trailingSlash: true,
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -198,6 +199,9 @@ const htaccessContent = `<IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
 
+  # Pastikan membaca index.html dan index.php secara default
+  DirectoryIndex index.html index.php
+
   # API routes redirection to index.php
   RewriteRule ^api/inventory/?$ api/inventory/index.php [QSA,L]
   RewriteRule ^api/rooms/?$ api/rooms/index.php [QSA,L]
@@ -208,15 +212,19 @@ const htaccessContent = `<IfModule mod_rewrite.c>
   RewriteRule ^ - [L]
 
   # Clean URL for /qr
+  RewriteCond %{DOCUMENT_ROOT}/qr/index.html -f
+  RewriteRule ^qr/?$ qr/index.html [L]
   RewriteCond %{DOCUMENT_ROOT}/qr.html -f
   RewriteRule ^qr/?$ qr.html [L]
 
-  # Clean URL for /a/[kode]
+  # Clean URL for /a/[kode] (Mencegah error 403 Forbidden pada scan QR)
+  RewriteCond %{DOCUMENT_ROOT}/a/$1/index.html -f
+  RewriteRule ^a/([^/]+)/?$ a/$1/index.html [L]
   RewriteCond %{DOCUMENT_ROOT}/a/$1.html -f
   RewriteRule ^a/([^/]+)/?$ a/$1.html [L]
 
   # Fallback for dynamic query or client routes
-  RewriteRule ^a/([^/]+)/?$ a/[kode].html [L]
+  RewriteRule ^a/([^/]+)/?$ a/[kode]/index.html [L]
   RewriteRule ^ index.html [L]
 </IfModule>
 `;
@@ -231,13 +239,15 @@ const zipPath = path.join(rootDir, zipName);
 const downloadsZipPath = path.join('C:\\Users\\ariel\\Downloads', zipName);
 
 try {
-  // Menggunakan PowerShell Compress-Archive
-  execSync(`powershell -Command "Compress-Archive -Path '${outDir}\\*' -DestinationPath '${zipPath}' -Force"`, { stdio: 'inherit' });
+  // Menggunakan PowerShell Compress-Archive dengan $ProgressPreference SilentlyContinue
+  execSync(`powershell -Command "$ProgressPreference = 'SilentlyContinue'; Compress-Archive -Path '${outDir}\\*', '${outDir}\\.htaccess' -DestinationPath '${zipPath}' -Force"`, { stdio: 'inherit' });
   console.log('✓ ZIP berhasil dibuat di: ' + zipPath);
   
   // Salin juga ke Downloads agar user sangat mudah menemukan
-  fs.copyFileSync(zipPath, downloadsZipPath);
-  console.log('✓ ZIP juga disalin ke folder Downloads Anda: ' + downloadsZipPath);
+  if (fs.existsSync(zipPath)) {
+    fs.copyFileSync(zipPath, downloadsZipPath);
+    console.log('✓ ZIP juga disalin ke folder Downloads Anda: ' + downloadsZipPath);
+  }
 } catch (e) {
   console.error('Gagal membuat ZIP otomatis:', e);
 }

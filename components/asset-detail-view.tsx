@@ -40,6 +40,12 @@ export function AssetDetailView({ initialItem, kode }: AssetDetailViewProps) {
   const [repairKondisi, setRepairKondisi] = useState<string>("Baik")
 
   useEffect(() => {
+    // Auto redirect jika dibuka dari domain lama Vercel agar langsung menuju domain resmi sekolah
+    if (typeof window !== "undefined" && window.location.hostname.includes("vercel.app")) {
+      window.location.replace(`https://inventaris.alaqsyar.sch.id${window.location.pathname}${window.location.search}`)
+      return
+    }
+
     const currentSession = getStoredSession()
     setSession(currentSession)
     if (currentSession?.name.includes("Joko")) {
@@ -192,21 +198,61 @@ export function AssetDetailView({ initialItem, kode }: AssetDetailViewProps) {
     const isPrinter = katKey === "PRN"
     const isProjector = katKey === "PROJ"
     const isRouter = katKey === "RTR"
+    const isSwitch = katKey === "SW"
     const isMonitor = katKey === "MON"
 
     if (isPc) rows.push(["Nama PC", item.namaPc])
     else if (isLaptop) rows.push(["Nama Laptop / Merek", item.namaPc])
     else if (isPrinter) rows.push(["Nama Printer", item.namaPc])
     else if (isProjector) rows.push(["Nama Proyektor", item.namaPc])
-    else if (isRouter) rows.push(["Nama Perangkat Jaringan", item.namaPc])
-    else if (isMonitor) rows.push(["Merek & Ukuran Monitor", item.namaPc])
+    else if (isRouter) rows.push(["Nama Router", item.namaPc])
+    else if (isSwitch) rows.push(["Nama Switch", item.namaPc])
+    else if (isMonitor) rows.push(["Nama Monitor", item.namaPc])
     else rows.push(["Nama Barang / Merek", item.namaPc])
 
     rows.push(["Kategori Device", katLabel])
     rows.push(["Unit Pemilik", item.jurusan])
     rows.push(["Lokasi Ruangan", item.lokasi])
 
-    if (isPc || isLaptop) {
+    if (isMonitor) {
+      rows.push(["No PC Terhubung", item.noPc ? `🖥️ ${item.noPc}` : "Tidak terpasang / Cadangan / Stok"])
+      if (item.serialNumber && item.serialNumber !== "-") rows.push(["Serial Number", item.serialNumber])
+      if (item.ukuranLayar && item.ukuranLayar !== "-") rows.push(["Ukuran Layar", item.ukuranLayar])
+      else if (item.monitor && item.monitor !== "-") rows.push(["Ukuran Layar", item.monitor])
+      if (item.resolusi && item.resolusi !== "-") rows.push(["Resolusi", item.resolusi])
+      if (item.jenisPanel && item.jenisPanel !== "-") rows.push(["Jenis Panel", item.jenisPanel])
+      if (item.portInput && item.portInput.length > 0) rows.push(["Port Input", item.portInput.join(", ")])
+      if (item.kelengkapanKabel && item.kelengkapanKabel.length > 0) rows.push(["Kelengkapan Kabel", item.kelengkapanKabel.join(", ")])
+      if (item.tahunPerolehan && item.tahunPerolehan !== "-") rows.push(["Tahun Perolehan", item.tahunPerolehan])
+      if (item.sumberDana && item.sumberDana !== "-") rows.push(["Sumber Dana", item.sumberDana])
+    } else if (isRouter) {
+      if (item.serialNumber && item.serialNumber !== "-") rows.push(["Serial Number", item.serialNumber])
+      if (item.macAddress && item.macAddress !== "-") rows.push(["MAC Address", item.macAddress])
+      if (item.tipeRouter && item.tipeRouter !== "-") rows.push(["Tipe Router", item.tipeRouter])
+      if (item.portLan && item.portLan !== "-") rows.push(["Port LAN", `${item.portLan} Port`])
+      if (item.portWan && item.portWan !== "-") rows.push(["Port WAN", `${item.portWan} Port`])
+      if (item.standarWifi && item.standarWifi !== "-") rows.push(["Standar Wi-Fi", item.standarWifi])
+      if (item.frekuensiWifi && item.frekuensiWifi.length > 0) rows.push(["Frekuensi", item.frekuensiWifi.join(" / ")])
+      if (item.ipAddress && item.ipAddress !== "-") rows.push(["IP Manajemen", item.ipAddress])
+      if (item.firmware && item.firmware !== "-") rows.push(["Firmware / OS", item.firmware])
+      else if (item.os && item.os !== "-") rows.push(["Firmware / OS", item.os])
+      if (item.uplink && item.uplink !== "-") rows.push(["Uplink", item.uplink])
+      if (item.tahunPerolehan && item.tahunPerolehan !== "-") rows.push(["Tahun Perolehan", item.tahunPerolehan])
+      if (item.sumberDana && item.sumberDana !== "-") rows.push(["Sumber Dana", item.sumberDana])
+    } else if (isSwitch) {
+      if (item.serialNumber && item.serialNumber !== "-") rows.push(["Serial Number", item.serialNumber])
+      if (item.macAddress && item.macAddress !== "-") rows.push(["MAC Address", item.macAddress])
+      if (item.tipeSwitch && item.tipeSwitch !== "-") rows.push(["Tipe Switch", item.tipeSwitch])
+      if (item.jumlahPort && item.jumlahPort !== "-") rows.push(["Jumlah Port", `${item.jumlahPort} Port`])
+      if (item.kecepatanPort && item.kecepatanPort !== "-") rows.push(["Kecepatan Port", item.kecepatanPort])
+      if (item.portSfp && item.portSfp !== "-") rows.push(["Port SFP / Uplink", item.portSfp])
+      if (item.dukunganPoe && item.dukunganPoe !== "-") rows.push(["Dukungan PoE", item.dukunganPoe])
+      if (item.ipManagement && item.ipManagement !== "-") rows.push(["IP Manajemen", item.ipManagement])
+      if (item.posisiPemasangan && item.posisiPemasangan !== "-") rows.push(["Posisi Pemasangan", item.posisiPemasangan])
+      if (item.uplink && item.uplink !== "-") rows.push(["Uplink", item.uplink])
+      if (item.tahunPerolehan && item.tahunPerolehan !== "-") rows.push(["Tahun Perolehan", item.tahunPerolehan])
+      if (item.sumberDana && item.sumberDana !== "-") rows.push(["Sumber Dana", item.sumberDana])
+    } else if (isPc || isLaptop) {
       if (item.prosesor && item.prosesor !== "-") rows.push(["Prosesor", item.prosesor])
       if (item.ram && item.ram !== "-") rows.push(["Kapasitas RAM", item.ram])
       if (item.storage && item.storage !== "-") rows.push(["Penyimpanan", item.storage])
@@ -217,10 +263,11 @@ export function AssetDetailView({ initialItem, kode }: AssetDetailViewProps) {
       if (isPc && item.monitor && item.monitor !== "-") rows.push(["Monitor", item.monitor])
       if (isPc && item.casing && item.casing !== "-") rows.push(["Merek Casing", item.casing])
       if (isLaptop && item.monitor && item.monitor !== "-") rows.push(["Ukuran Layar", item.monitor])
-      if (isLaptop && item.motherboard && item.motherboard !== "-") rows.push(["Serial Number", item.motherboard])
+      if (item.serialNumber && item.serialNumber !== "-") rows.push(["Serial Number", item.serialNumber])
+      else if (item.motherboard && item.motherboard !== "-") rows.push(["Serial Number", item.motherboard])
     } else {
       if (item.prosesor && item.prosesor !== "-") {
-        rows.push([isProjector ? "Lumens / Resolusi" : isRouter ? "Chipset / Frekuensi" : "Spesifikasi", item.prosesor])
+        rows.push([isProjector ? "Lumens / Resolusi" : "Spesifikasi", item.prosesor])
       }
       if (item.os && item.os !== "-") rows.push(["Firmware / OS", item.os])
       if (item.keyboard && item.keyboard !== "-") rows.push(["Keyboard", item.keyboard])

@@ -2,11 +2,35 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import QRCode from "qrcode"
-import { Download, Printer, Search, QrCode, Check, Building2 } from "lucide-react"
-import { inventory as defaultRawInventory, getStoredInventory, saveStoredInventory, JURUSAN, type InventoryItem } from "@/lib/inventory"
+import { Download, Printer, Search, QrCode, Check, Building2, Filter, Layers, CheckCircle2 } from "lucide-react"
+import {
+  inventory as defaultRawInventory,
+  getStoredInventory,
+  saveStoredInventory,
+  kondisiStatus,
+  JURUSAN,
+  type InventoryItem,
+} from "@/lib/inventory"
 import { getStoredRooms } from "@/lib/rooms"
+import { getStoredCategories, type CategoryItem } from "@/lib/master-data"
 
 const LABELS = {
+  standarWithMeta: {
+    name: "🏷️ Standar Sekolah (50 × 30 mm • QR, Kode, Nama & No PC)",
+    w: 50,
+    h: 30,
+    qrPx: 85,
+    fontSize: 7.5,
+    compact: false,
+  },
+  large: {
+    name: "📐 Label Besar (70 × 40 mm • Lengkap & Jelas)",
+    w: 70,
+    h: 40,
+    qrPx: 115,
+    fontSize: 9.5,
+    compact: false,
+  },
   compact4col: {
     name: "⚡ Super Hemat (4 Kolom • Hanya QR & Kode Aset)",
     w: 44,
@@ -23,44 +47,39 @@ const LABELS = {
     fontSize: 6.5,
     compact: true,
   },
-  small: {
-    name: "Standar 50 × 30 mm (Dengan Details)",
-    w: 50,
-    h: 30,
-    qrPx: 90,
-    fontSize: 8,
-    compact: false,
-  },
-  large: {
-    name: "Besar 70 × 40 mm (Dengan Details)",
-    w: 70,
-    h: 40,
-    qrPx: 120,
-    fontSize: 10,
-    compact: false,
-  },
 } as const
 
 type LabelSize = keyof typeof LABELS
 
+export const OFFICIAL_DOMAIN = "https://inventaris.alaqsyar.sch.id"
+
 function assetUrl(kode: string) {
-  const origin = typeof window !== "undefined" ? window.location.origin : ""
-  return `${origin}/a/${encodeURIComponent(kode)}`
+  // Selalu prioritaskan domain resmi inventaris.alaqsyar.sch.id agar QR fisik valid
+  return `${OFFICIAL_DOMAIN}/a/${encodeURIComponent(kode)}`
 }
 
 export function QrLabelTool() {
   const [items, setItems] = useState<InventoryItem[]>(defaultRawInventory)
   const [rooms, setRooms] = useState<string[]>([])
-  const [query, setQuery] = useState("")
+  const [categories, setCategories] = useState<CategoryItem[]>([])
+  
+  // Filter States sesuai Bab 8 PDF
+  const [kategoriFilter, setKategoriFilter] = useState<string>("all")
   const [jurusan, setJurusan] = useState("all")
   const [ruangan, setRuangan] = useState("all")
+  const [kondisiFilter, setKondisiFilter] = useState("all")
+  const [query, setQuery] = useState("")
+
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [size, setSize] = useState<LabelSize>("compact4col")
+  const [size, setSize] = useState<LabelSize>("standarWithMeta")
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    setItems(getStoredInventory())
+    const inv = getStoredInventory()
+    setItems(inv)
     setRooms(getStoredRooms())
+    setCategories(getStoredCategories().filter((c) => c.active && c.type === "IT"))
+    setSelected(new Set(inv.map((i) => i.kode)))
 
     fetch("/api/inventory")
       .then((res) => (res.ok ? res.json() : null))
@@ -89,15 +108,47 @@ export function QrLabelTool() {
     }
   }, [])
 
+  // Filter & Urutkan berdasarkan kode aset (nomor urut kecil ke besar)
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    return items.filter((i) => {
+    const result = items.filter((i) => {
+      // 1. Filter Kategori
+      if (kategoriFilter !== "all") {
+        const itemKat = (i.kategori || "").toUpperCase()
+        if (kategoriFilter === "PC" && itemKat !== "PC" && !i.kode.includes("-PC-")) return false
+        if (kategoriFilter === "MON" && itemKat !== "MON" && !i.kode.includes("-MON-")) return false
+        if (kategoriFilter === "RTR" && itemKat !== "RTR" && !i.kode.includes("-RTR-")) return false
+        if (kategoriFilter === "SW" && itemKat !== "SW" && !i.kode.includes("-SW-")) return false
+        if (!["PC", "MON", "RTR", "SW"].includes(kategoriFilter) && itemKat !== kategoriFilter) return false
+      }
+
+      // 2. Filter Jurusan
       if (jurusan !== "all" && i.jurusan !== jurusan) return false
+
+      // 3. Filter Ruangan
       if (ruangan !== "all" && (i.lokasi || "").toLowerCase() !== ruangan.toLowerCase()) return false
+
+      // 4. Filter Kondisi
+      if (kondisiFilter !== "all" && kondisiStatus(i.kondisi) !== kondisiFilter) return false
+
+      // 5. Pencarian Teks
       if (!q) return true
-      return `${i.kode} ${i.namaPc} ${i.lokasi}`.toLowerCase().includes(q)
+      const matchText = `${i.kode} ${i.namaPc} ${i.lokasi} ${i.noPc || ""}`.toLowerCase()
+      return matchText.includes(q)
     })
-  }, [items, query, jurusan, ruangan])
+
+    // Aturan 8.5: Urutkan berdasarkan kode aset (nomor urut kecil ke besar)
+    return result.sort((a, b) => a.kode.localeCompare(b.kode, undefined, { numeric: true, sensitivity: "base" }))
+  }, [items, kategoriFilter, jurusan, ruangan, kondisiFilter, query])
+
+  // Otomatis centang item yang sedang terfilter saat filter berubah
+  function selectAllFiltered() {
+    setSelected(new Set(filtered.map((i) => i.kode)))
+  }
+
+  function clearSelection() {
+    setSelected(new Set())
+  }
 
   function toggle(kode: string) {
     setSelected((prev) => {
@@ -108,17 +159,9 @@ export function QrLabelTool() {
     })
   }
 
-  function selectAllFiltered() {
-    setSelected(new Set(filtered.map((i) => i.kode)))
-  }
-
-  function clearSelection() {
-    setSelected(new Set())
-  }
-
   const selectedItems = useMemo(
-    () => items.filter((i) => selected.has(i.kode)),
-    [items, selected],
+    () => filtered.filter((i) => selected.has(i.kode)),
+    [filtered, selected],
   )
 
   async function generatePdf() {
@@ -156,19 +199,28 @@ export function QrLabelTool() {
       const labels = selectedItems
         .map((item) => {
           const qr = qrByKode.get(item.kode) ?? ""
+          const isMonitor = (item.kategori || "").toUpperCase() === "MON" || item.kode.includes("-MON-")
+          
           if (compact) {
             return `<div class="label compact">
                 <img class="qr" src="${qr}" alt="QR ${escapeHtml(item.kode)}" />
                 <div class="kode">${escapeHtml(item.kode)}</div>
+                ${isMonitor && item.noPc ? `<div class="pc-badge">PC: ${escapeHtml(item.noPc)}</div>` : ""}
               </div>`
           }
+
           return `<div class="label">
               <img class="qr" src="${qr}" alt="QR ${escapeHtml(item.kode)}" />
               <div class="meta">
-                <div class="org">Inventaris IT Al-Aqsyar</div>
+                <div class="org">SMK AL-AQSYAR</div>
                 <div class="kode">${escapeHtml(item.kode)}</div>
                 <div class="nama">${escapeHtml(item.namaPc || "Tanpa Nama")}</div>
-                <div class="jurusan">${escapeHtml(item.jurusan)}</div>
+                <div class="lokasi">📍 ${escapeHtml(item.lokasi || item.jurusan)}</div>
+                ${
+                  isMonitor
+                    ? `<div class="no-pc-tag">🖥️ No PC: <strong>${escapeHtml(item.noPc || "Cadangan/Stok")}</strong></div>`
+                    : ""
+                }
               </div>
             </div>`
         })
@@ -178,7 +230,7 @@ export function QrLabelTool() {
         <html lang="id">
         <head>
         <meta charset="utf-8" />
-        <title>Label QR Inventaris Al-Aqsyar</title>
+        <title>Label Barcode QR Inventaris Al-Aqsyar</title>
         <style>
           @page { size: A4; margin: 6mm; }
           * { box-sizing: border-box; }
@@ -193,7 +245,7 @@ export function QrLabelTool() {
           .label {
             width: ${w}mm;
             height: ${h}mm;
-            border: 0.2mm dashed #aaa;
+            border: 0.2mm dashed #999;
             border-radius: 1.5mm;
             padding: 1.5mm;
             display: flex;
@@ -211,11 +263,13 @@ export function QrLabelTool() {
             padding: 1mm 0.5mm;
           }
           .qr { width: ${qrPx}px; height: ${qrPx}px; flex-shrink: 0; display: block; margin: 0 auto; }
-          .kode { font-size: ${fontSize}pt; font-weight: 800; font-family: "Courier New", monospace, sans-serif; letter-spacing: -0.2px; text-align: center; color: #000; line-height: 1; }
-          .meta { min-width: 0; line-height: 1.2; }
-          .org { font-size: 7pt; font-weight: 700; }
-          .nama { font-size: 6.5pt; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-          .jurusan { font-size: 6pt; color: #555; margin-top: 0.5mm; }
+          .kode { font-size: ${fontSize}pt; font-weight: 800; font-family: "Courier New", monospace, sans-serif; letter-spacing: -0.2px; color: #000; line-height: 1.1; }
+          .meta { min-width: 0; line-height: 1.25; flex: 1; }
+          .org { font-size: 6pt; font-weight: 800; color: #6b21a8; text-transform: uppercase; letter-spacing: 0.5px; }
+          .nama { font-size: 6.5pt; font-weight: 600; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin-top: 0.5mm; }
+          .lokasi { font-size: 6pt; color: #475569; margin-top: 0.5mm; }
+          .no-pc-tag { font-size: 6pt; background: #f3e8ff; border: 0.2mm solid #d8b4fe; border-radius: 1mm; padding: 0.3mm 1mm; margin-top: 0.8mm; display: inline-block; color: #581c87; }
+          .pc-badge { font-size: 5.5pt; font-weight: bold; background: #ede9fe; color: #5b21b6; border-radius: 0.5mm; padding: 0.2mm 0.8mm; }
           @media print { body { background: #fff; } .label { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
         </style>
         </head>
@@ -231,7 +285,7 @@ export function QrLabelTool() {
 
       const win = window.open("", "_blank")
       if (!win) {
-        alert("Popup diblokir. Izinkan popup untuk mencetak/menyimpan PDF.")
+        alert("Popup diblokir browser. Mohon izinkan popup untuk mencetak label.")
         return
       }
       win.document.open()
@@ -244,33 +298,47 @@ export function QrLabelTool() {
 
   return (
     <div className="space-y-6">
+      {/* Target Domain Alert Info */}
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-purple-200 bg-purple-50/70 px-4 py-2.5 text-xs text-purple-950">
+        <div className="flex items-center gap-2">
+          <QrCode className="size-4 text-purple-700" />
+          <span>
+            QR Code ditargetkan ke domain resmi: <strong>{OFFICIAL_DOMAIN}</strong> (valid saat di-scan HP di lokasi sekolah).
+          </span>
+        </div>
+      </div>
+
+      {/* Control Panel: Counter & Print Actions */}
       <div className="rounded-2xl border border-purple-100 bg-white p-5 shadow-xs">
         <div className="flex flex-col gap-4">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
-            <span className="text-sm font-bold text-slate-800">
-              <span className="text-purple-700">{selected.size}</span> unit dipilih untuk cetak
-            </span>
+            <div>
+              <span className="text-sm font-bold text-slate-800">
+                Terpilih: <span className="text-purple-700 font-black text-base">{selectedItems.length}</span> barang
+                <span className="text-slate-500 font-normal ml-1.5">(dari total {filtered.length} hasil filter)</span>
+              </span>
+            </div>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={selectAllFiltered}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
               >
-                Pilih semua ({filtered.length})
+                Pilih Semua ({filtered.length})
               </button>
               <button
                 type="button"
                 onClick={clearSelection}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition-colors"
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-rose-600 hover:bg-slate-50 transition-colors cursor-pointer"
               >
-                Kosongkan
+                Hapus Semua Centang
               </button>
             </div>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center justify-between">
             <label className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-600">
-              Ukuran &amp; Format Stiker:
+              Format &amp; Ukuran Label:
               <select
                 value={size}
                 onChange={(e) => setSize(e.target.value as LabelSize)}
@@ -286,15 +354,15 @@ export function QrLabelTool() {
             <button
               type="button"
               onClick={generatePdf}
-              disabled={selected.size === 0 || busy}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-purple-600 px-5 py-2.5 text-xs sm:text-sm font-bold text-white shadow-xs transition-colors hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={selectedItems.length === 0 || busy}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-purple-600 px-6 py-2.5 text-xs sm:text-sm font-bold text-white shadow-xs transition-colors hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
             >
               {busy ? (
-                "Membuat PDF..."
+                "Membuat Dokumen Label..."
               ) : (
                 <>
                   <Printer className="size-4" aria-hidden />
-                  Cetak PDF ({selected.size} Label)
+                  Cetak / Simpan PDF ({selectedItems.length} Label)
                 </>
               )}
             </button>
@@ -302,34 +370,65 @@ export function QrLabelTool() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          {[{ key: "all", label: "Semua Unit" }, ...JURUSAN].map((f) => {
-            const active = jurusan === f.key
-            return (
-              <button
-                key={f.key}
-                type="button"
-                onClick={() => setJurusan(f.key)}
-                className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-all ${
-                  active
-                    ? "border-purple-600 bg-purple-600 text-white shadow-2xs"
-                    : "border-slate-200 bg-white text-slate-600 hover:text-slate-900 hover:border-slate-300"
-                }`}
-                aria-pressed={active}
-              >
-                {f.label}
-              </button>
-            )
-          })}
+      {/* BAB 8.1 & 8.2: FILTER KATEGORI & FILTER TAMBAHAN */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs space-y-3">
+        {/* Filter Kategori Utama (Bab 8.1 PDF) */}
+        <div>
+          <label className="block text-xs font-bold text-slate-700 mb-2">
+            Pilih Kategori Barang IT yang Ingin Dicetak:
+          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            {[
+              { key: "all", label: "Semua Kategori IT" },
+              { key: "PC", label: "[PC] PC Saja" },
+              { key: "MON", label: "[MON] Monitor Saja" },
+              { key: "RTR", label: "[RTR] Router Saja" },
+              { key: "SW", label: "[SW] Switch Saja" },
+            ].map((kat) => {
+              const active = kategoriFilter === kat.key
+              return (
+                <button
+                  key={kat.key}
+                  type="button"
+                  onClick={() => setKategoriFilter(kat.key)}
+                  className={`rounded-full border px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer ${
+                    active
+                      ? "border-purple-600 bg-purple-600 text-white shadow-xs"
+                      : "border-slate-200 bg-white text-slate-700 hover:border-purple-300 hover:bg-purple-50/50"
+                  }`}
+                >
+                  {kat.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
 
-          {/* Filter berdasarkan Ruangan / Lokasi */}
+        {/* Filter Tambahan (Bab 8.2 PDF) */}
+        <div className="flex flex-wrap items-center gap-2.5 pt-2 border-t border-slate-100">
+          {/* Filter Jurusan / Unit */}
+          <div className="relative inline-flex items-center">
+            <select
+              value={jurusan}
+              onChange={(e) => setJurusan(e.target.value)}
+              className="rounded-lg border border-slate-200 bg-slate-50 py-1.5 px-3 text-xs font-semibold text-slate-700 outline-none focus:border-purple-500"
+            >
+              <option value="all">Semua Unit / Jurusan</option>
+              {JURUSAN.map((j) => (
+                <option key={j.key} value={j.key}>
+                  {j.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filter Ruangan */}
           <div className="relative inline-flex items-center">
             <Building2 className="pointer-events-none absolute left-2.5 size-3.5 text-slate-400" />
             <select
               value={ruangan}
               onChange={(e) => setRuangan(e.target.value)}
-              className="rounded-full border border-slate-200 bg-white py-1.5 pl-8 pr-3 text-xs font-semibold text-slate-700 outline-none focus:border-purple-500"
+              className="rounded-lg border border-slate-200 bg-slate-50 py-1.5 pl-8 pr-3 text-xs font-semibold text-slate-700 outline-none focus:border-purple-500"
             >
               <option value="all">Semua Ruangan</option>
               {rooms.map((r) => (
@@ -339,24 +438,40 @@ export function QrLabelTool() {
               ))}
             </select>
           </div>
-        </div>
 
-        <div className="relative w-full sm:w-64">
-          <Search
-            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400"
-            aria-hidden
-          />
-          <input
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Cari kode, nama, lokasi..."
-            className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-xs sm:text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-purple-500 shadow-2xs"
-            aria-label="Cari unit"
-          />
+          {/* Filter Kondisi */}
+          <div className="relative inline-flex items-center">
+            <CheckCircle2 className="pointer-events-none absolute left-2.5 size-3.5 text-slate-400" />
+            <select
+              value={kondisiFilter}
+              onChange={(e) => setKondisiFilter(e.target.value)}
+              className="rounded-lg border border-slate-200 bg-slate-50 py-1.5 pl-8 pr-3 text-xs font-semibold text-slate-700 outline-none focus:border-purple-500"
+            >
+              <option value="all">Semua Kondisi</option>
+              <option value="baik">Kondisi Baik</option>
+              <option value="bermasalah">Rusak Ringan</option>
+              <option value="mati">Rusak Berat</option>
+            </select>
+          </div>
+
+          {/* Search Box */}
+          <div className="relative flex-1 min-w-[200px]">
+            <Search
+              className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-slate-400"
+              aria-hidden
+            />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Cari kode, nama, No PC..."
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 py-1.5 pl-8 pr-3 text-xs text-slate-800 outline-none placeholder:text-slate-400 focus:border-purple-500 focus:bg-white"
+            />
+          </div>
         </div>
       </div>
 
+      {/* Grid Kartu QR Label */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {filtered.map((item) => (
           <QrCard
@@ -370,7 +485,7 @@ export function QrLabelTool() {
 
       {filtered.length === 0 && (
         <div className="rounded-2xl border border-dashed border-slate-200 py-12 text-center text-slate-400 bg-white">
-          Tidak ada unit yang cocok dengan filter / ruangan ini.
+          Tidak ada barang pada kategori ini.
         </div>
       )}
     </div>
@@ -387,6 +502,7 @@ function QrCard({
   onToggle: () => void
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const isMonitor = (item.kategori || "").toUpperCase() === "MON" || item.kode.includes("-MON-")
 
   useEffect(() => {
     if (canvasRef.current) {
@@ -421,13 +537,18 @@ function QrCard({
           <p className="truncate font-mono text-xs font-bold text-purple-700">{item.kode}</p>
           <p className="truncate text-xs font-bold text-slate-800">{item.namaPc || "Tanpa Nama"}</p>
           <p className="truncate text-[11px] text-slate-500">{item.lokasi || item.jurusan}</p>
+          {isMonitor && (
+            <p className="mt-1 inline-block rounded bg-purple-50 border border-purple-200 px-1.5 py-0.5 text-[10px] font-bold text-purple-800 truncate">
+              🖥️ No PC: {item.noPc || "(Cadangan)"}
+            </p>
+          )}
         </div>
         <button
           type="button"
           onClick={onToggle}
           aria-pressed={checked}
           aria-label={checked ? "Batal pilih" : "Pilih unit"}
-          className={`flex size-6 shrink-0 items-center justify-center rounded-lg border transition-colors ${
+          className={`flex size-6 shrink-0 items-center justify-center rounded-lg border transition-colors cursor-pointer ${
             checked
               ? "border-purple-600 bg-purple-600 text-white"
               : "border-slate-200 bg-slate-50 text-transparent hover:border-slate-300"
@@ -454,7 +575,7 @@ function QrCard({
         <button
           type="button"
           onClick={downloadPng}
-          className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-purple-200 bg-purple-50 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-100 shadow-2xs"
+          className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-purple-200 bg-purple-50 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-100 shadow-2xs cursor-pointer"
         >
           <Download className="size-3.5" />
           PNG

@@ -18,7 +18,7 @@ export type InventoryItem = {
   kategori?: string
   namaPc: string // Nama Barang / Nama Device
   
-  // IT Specs
+  // IT Specs (PC/Laptop)
   prosesor?: string
   ram?: string
   storage?: string
@@ -28,6 +28,42 @@ export type InventoryItem = {
   monitor?: string
   casing?: string
   motherboard?: string
+
+  // Common Technical & Identity
+  serialNumber?: string
+  macAddress?: string
+
+  // Monitor Specs
+  noPc?: string // Relasi kode PC untuk Monitor (mis. TJKT-PC-001-26)
+  ukuranLayar?: string // mis. 17 / 18.5 / 19 / 21.5 / 24 inci
+  resolusi?: string // 1366x768, 1600x900, 1920x1080, lainnya
+  jenisPanel?: string // LCD / LED / IPS / VA / TN
+  portInput?: string[] // VGA, HDMI, DVI, DisplayPort
+  kelengkapanKabel?: string[] // Kabel daya, kabel VGA, kabel HDMI
+
+  // Router Specs
+  tipeRouter?: string // Router Kabel, Wireless, Router Board, Access Point
+  portLan?: string
+  portWan?: string
+  standarWifi?: string
+  frekuensiWifi?: string[] // 2.4 GHz, 5 GHz
+  ipAddress?: string
+  firmware?: string
+  uplink?: string
+
+  // Switch Specs
+  tipeSwitch?: string // Unmanaged, Managed, PoE
+  jumlahPort?: string // 5 / 8 / 16 / 24 / 48
+  kecepatanPort?: string // 10/100 Mbps / Gigabit
+  portSfp?: string
+  dukunganPoe?: string // Ya / Tidak
+  ipManagement?: string
+  posisiPemasangan?: string // Rak / Meja / Dinding
+
+  // Administrasi Aset
+  tahunPerolehan?: string
+  sumberDana?: string // BOS / Hibah / Komite / Lainnya
+  masaGaransi?: string
   
   // Non-IT Specs (HR/GA)
   merekModel?: string
@@ -76,13 +112,14 @@ export const KATEGORI_DEVICE = [
   { key: "CPU", label: "CPU / Unit Prosesor", prefix: "CPU", type: "IT" },
   { key: "MON", label: "Monitor", prefix: "MON", type: "IT" },
   { key: "LAP", label: "Laptop", prefix: "LAP", type: "IT" },
+  { key: "RTR", label: "Router", prefix: "RTR", type: "IT" },
+  { key: "SW", label: "Switch", prefix: "SW", type: "IT" },
   { key: "KEY", label: "Keyboard", prefix: "KEY", type: "IT" },
   { key: "MOU", label: "Mouse", prefix: "MOU", type: "IT" },
   { key: "PRN", label: "Printer", prefix: "PRN", type: "IT" },
   { key: "SCN", label: "Scanner", prefix: "SCN", type: "IT" },
   { key: "PROJ", label: "Proyektor / LCD", prefix: "PROJ", type: "IT" },
   { key: "UPS", label: "UPS / Stabilizer", prefix: "UPS", type: "IT" },
-  { key: "RTR", label: "Router / Perangkat Jaringan", prefix: "RTR", type: "IT" },
   { key: "LAIN", label: "Elektronik IT Lainnya", prefix: "LAIN", type: "IT" },
 
   // Non-IT (HR/GA)
@@ -221,4 +258,22 @@ export function generateNextCode(
     return `GA-${prefixKat}-${nextNum}-${yearSuffix}`
   }
   return `${prefixUnit}-${prefixKat}-${nextNum}-${yearSuffix}`
+}
+
+/** Cari monitor yang sedang terpasang di PC ini */
+export function getMonitorForPc(kodePc: string, items: InventoryItem[]): InventoryItem | undefined {
+  if (!kodePc) return undefined
+  return items.find((i) => i.kategori === "MON" && i.noPc === kodePc)
+}
+
+/** Cek apakah PC ini sudah memiliki monitor terhubung (opsional kecualikan kode monitor yang sedang diedit) */
+export function checkPcHasMonitor(
+  kodePc: string,
+  items: InventoryItem[],
+  excludeKodeMonitor?: string
+): InventoryItem | undefined {
+  if (!kodePc) return undefined
+  return items.find(
+    (i) => i.kategori === "MON" && i.noPc === kodePc && (!excludeKodeMonitor || i.kode !== excludeKodeMonitor)
+  )
 }
