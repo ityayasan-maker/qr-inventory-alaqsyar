@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import Link from "next/link"
 import { ArrowLeft, RefreshCw, Armchair, Laptop, Wrench, Plus, CheckCircle2, ShieldCheck, Calendar, DollarSign, UserCheck, KeyRound, AlertCircle } from "lucide-react"
 import {
@@ -23,6 +23,7 @@ interface AssetDetailViewProps {
 
 export function AssetDetailView({ initialItem, kode }: AssetDetailViewProps) {
   const [item, setItem] = useState<InventoryItem | null>(initialItem)
+  const [allItems, setAllItems] = useState<InventoryItem[]>([])
   const [session, setSession] = useState<UserSession | null>(null)
   const [loading, setLoading] = useState(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
@@ -53,6 +54,7 @@ export function AssetDetailView({ initialItem, kode }: AssetDetailViewProps) {
     }
 
     const stored = getStoredInventory()
+    setAllItems(stored)
     const found = stored.find((i) => i.kode === kode)
     if (found) {
       setItem(found)
@@ -65,6 +67,7 @@ export function AssetDetailView({ initialItem, kode }: AssetDetailViewProps) {
         const res = await fetch("/api/inventory")
         if (res.ok) {
           const list: InventoryItem[] = await res.json()
+          setAllItems(list)
           const liveFound = list.find((i) => i.kode === kode)
           if (liveFound) {
             setItem(liveFound)
@@ -282,6 +285,16 @@ export function AssetDetailView({ initialItem, kode }: AssetDetailViewProps) {
     rows.push(["Catatan / Keterangan", item.catatan])
   }
 
+  const pairedMonitor = useMemo(() => {
+    if (!item) return null
+    return allItems.find((i) => ((i.kategori || "").toUpperCase() === "MON" || i.kode.includes("-MON-")) && i.noPc === item.kode)
+  }, [item, allItems])
+
+  const pairedPc = useMemo(() => {
+    if (!item || !item.noPc) return null
+    return allItems.find((i) => i.kode === item.noPc)
+  }, [item, allItems])
+
   const logs = item.repairLogs || []
 
   return (
@@ -352,6 +365,69 @@ export function AssetDetailView({ initialItem, kode }: AssetDetailViewProps) {
           </span>
         </div>
         <p className="mt-1 text-lg font-bold text-slate-800">{item.namaPc || "Tanpa Nama"}</p>
+
+        {/* RELASI KHUSUS MONITOR DENGAN PC (ANTI MONITOR TERTUKAR / PINDAH) */}
+        {katKey === "MON" && (
+          <div className="mt-4 rounded-xl border border-purple-300 bg-purple-50 p-4 shadow-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🖥️</span>
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-wider text-purple-900">
+                  Pasangan PC Resmi:
+                </p>
+                {item.noPc ? (
+                  <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="font-mono text-base font-extrabold text-purple-950">
+                        {item.noPc}
+                      </p>
+                      {pairedPc && (
+                        <p className="text-xs text-slate-600 font-medium">
+                          {pairedPc.namaPc} • 📍 {pairedPc.lokasi}
+                        </p>
+                      )}
+                    </div>
+                    <Link
+                      href={`/a/${encodeURIComponent(item.noPc)}`}
+                      className="rounded-lg bg-purple-700 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-purple-800 transition-colors"
+                    >
+                      Buka PC Terpasang &rarr;
+                    </Link>
+                  </div>
+                ) : (
+                  <p className="mt-1 text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 rounded px-2.5 py-1">
+                    ⚠️ Monitor ini tercatat sebagai <strong>Cadangan / Stok</strong> (belum dipasangkan ke PC manapun).
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* JIKA SCANNING PC, TAMPILKAN MONITOR PASANGANNYA */}
+        {(katKey === "PC" || katKey === "CPU") && pairedMonitor && (
+          <div className="mt-4 rounded-xl border border-purple-200 bg-purple-50/70 p-3.5 shadow-2xs">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <span className="text-xl">🖥️</span>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-purple-700">
+                    Monitor Pasangan Terpasang:
+                  </p>
+                  <p className="font-mono text-sm font-extrabold text-purple-950">
+                    {pairedMonitor.kode} <span className="font-normal font-sans text-xs text-slate-600">({pairedMonitor.namaPc})</span>
+                  </p>
+                </div>
+              </div>
+              <Link
+                href={`/a/${encodeURIComponent(pairedMonitor.kode)}`}
+                className="rounded-lg border border-purple-300 bg-white px-3 py-1 text-xs font-bold text-purple-700 hover:bg-purple-100 transition-colors"
+              >
+                Cek Monitor &rarr;
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* Specifications Table */}
         <dl className="mt-5 divide-y divide-slate-100 rounded-xl border border-slate-100 bg-slate-50/50 p-2">
