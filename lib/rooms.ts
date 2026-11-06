@@ -4,6 +4,9 @@ export const DEFAULT_ROOMS = [
   "Lab TJKT",
   "Lab DKV",
   "Lab MPLB",
+  "Lab AKL",
+  "Lab PM",
+  "Lab SMP",
   "Ruang Server",
   "Kantor Yayasan",
   "Ruang TU Yayasan",
@@ -26,7 +29,9 @@ export function getStoredRooms(): string[] {
     if (raw) {
       const parsed = JSON.parse(raw)
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed
+        // Otomatis gabungkan default rooms agar Lab AKL, Lab PM, Lab SMP langsung masuk di browser
+        const merged = Array.from(new Set([...DEFAULT_ROOMS, ...parsed]))
+        return merged
       }
     }
   } catch (e) {

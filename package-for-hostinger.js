@@ -159,13 +159,25 @@ if (\$_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 if (!file_exists(\$dataFile)) {
     \$defaultRooms = [
-        "Ruang Kantor Yayasan",
-        "Lab TJKT 1",
-        "Lab TJKT 2",
-        "Lab TJKT 3",
-        "Ruang Guru",
+        "Lab TJKT",
+        "Lab DKV",
+        "Lab MPLB",
+        "Lab AKL",
+        "Lab PM",
+        "Lab SMP",
+        "Ruang Server",
+        "Kantor Yayasan",
+        "Ruang TU Yayasan",
+        "Ruang Inventaris",
+        "Ruang Keuangan",
+        "Ruang PPDB",
+        "Bisnis Center",
+        "Gudang Utama",
+        "Ruang Kelas SMP",
+        "Ruang Kelas AKL",
+        "Ruang Kelas PM",
         "Ruang Kepala Sekolah",
-        "Ruang TU"
+        "Ruang Guru"
     ];
     file_put_contents(\$dataFile, json_encode(\$defaultRooms, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 }
